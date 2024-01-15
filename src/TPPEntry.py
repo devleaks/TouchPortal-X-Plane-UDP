@@ -1,5 +1,5 @@
 # Version string of this plugin (in Python style).
-__version__ = "1.0"
+__version__ = "1.1"
 
 
 def dotkey(*a):
@@ -33,19 +33,17 @@ TP_PLUGIN_INFO = {
 
 # Setting(s) for this plugin. These could be either for users to
 # set, or to persist data between plugin runs (as read-only settings).
-TP_PLUGIN_SETTINGS = {}
-# TP_PLUGIN_SETTINGS = {
-#     "example": {
-#         "name": "Example Setting",
-#         # "text" is the default type and could be omitted here
-#         "type": "text",
-#         "default": "Example value",
-#         "readOnly": False,  # this is also the default
-#         "doc": "example doc for example setting",
-#         "value": None  # we can optionally use the settings struct to hold the current value
-#     },
-# }
-#
+TP_PLUGIN_SETTINGS = {
+    "Dynamic States File": {
+        "name": "Dynamic States File",
+        # "text" is the default type and could be omitted here
+        "type": "text",
+        "default": "states.json",
+        "readOnly": True,  # this is also the default
+        "doc": "File containing TP states to X-Plane dataref mappings",
+        "value": None,  # we can optionally use the settings struct to hold the current value
+    }
+}
 
 # This example only uses one Category for actions/etc., but multiple categories are supported also.
 TP_PLUGIN_CATEGORIES = {"main": {"id": pluginkey("main"), "name": "X-Plane UDP", "imagepath": "tpxpudpplugin.png"}}
@@ -66,7 +64,7 @@ TP_PLUGIN_ACTIONS = {
         # Numeric token values correspond to the order in which the data items are listed here, while text tokens correspond
         # to the last part of a dotted data ID (the part after the last period; letters, numbers, and underscore allowed).
         "format": "Execute $[command]",
-        "data": {"command": {"id": pluginkey("act", "XPlaneCommand", "data", "command"), "type": "text", "label": "Command", "default": "None"}},
+        "data": {"command": {"id": pluginkey("act", "XPlaneCommand", "data", "command"), "type": "text", "label": "Command", "default": None}},
     },
     "ExecuteLongPressCommand": {
         # "category" is optional, if omitted then this action will be added to all, or the only, category(ies)
@@ -82,7 +80,7 @@ TP_PLUGIN_ACTIONS = {
         # Numeric token values correspond to the order in which the data items are listed here, while text tokens correspond
         # to the last part of a dotted data ID (the part after the last period; letters, numbers, and underscore allowed).
         "format": "Execute while pressed $[command]",
-        "data": {"command": {"id": pluginkey("act", "XPlaneLongPressCommand", "data", "command"), "type": "text", "label": "Command", "default": "None"}},
+        "data": {"command": {"id": pluginkey("act", "XPlaneLongPressCommand", "data", "command"), "type": "text", "label": "Command", "default": None}},
     },
     "SetDataref": {
         # "category" is optional, if omitted then this action will be added to all, or the only, category(ies)
@@ -99,8 +97,8 @@ TP_PLUGIN_ACTIONS = {
         # to the last part of a dotted data ID (the part after the last period; letters, numbers, and underscore allowed).
         "format": "Set $[dataref] to $[datarefvalue]",
         "data": {
-            "dataref": {"id": pluginkey("act", "SetDataref", "data", "dataref"), "type": "text", "label": "Dataref", "default": "None"},
-            "datarefvalue": {"id": pluginkey("act", "SetDataref", "data", "datarefvalue"), "type": "text", "label": "Dataref Value", "default": "None"},
+            "dataref": {"id": pluginkey("act", "SetDataref", "data", "dataref"), "type": "text", "label": "Dataref", "default": None},
+            "datarefvalue": {"id": pluginkey("act", "SetDataref", "data", "datarefvalue"), "type": "text", "label": "Dataref Value", "default": None},
         },
     },
 }

@@ -155,6 +155,21 @@ def onError(exc):
     g_log.error(f"Error in TP Client event handler: {repr(exc)}")
 
 
+@TPClient.on(TP.TYPES.onBroadcast)
+def onAction(data):
+    g_log.debug(data)
+
+    if not (broadcast_event := data.get("event")) or not (page_name := data.get("pageName")):
+        return
+
+    if broadcast_event == "pageChange":
+        XPClient.change_page(page_name)
+        g_log.info(f"changed page to {page_name}")
+
+
+# {'type': 'broadcast', 'event': 'pageChange', 'pageName': '/(main).tml'}
+
+
 @TPClient.on(TP.TYPES.allMessage)
 def onAction(data):
     g_log.debug(data)

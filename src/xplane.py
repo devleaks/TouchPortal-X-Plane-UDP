@@ -11,24 +11,24 @@ import json
 import os
 import re
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from queue import Queue
 from abc import ABC, abstractmethod
 
 from rpc import RPC
-from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES
+from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, dotkey
 
 loggerCommand = logging.getLogger("Command")
 # loggerCommand.setLevel(logging.DEBUG)
 
 loggerDataref = logging.getLogger("Dataref")
-loggerDataref.setLevel(logging.INFO)
+loggerDataref.setLevel(logging.DEBUG)
 
 loggerTPState = logging.getLogger("TPState")
 loggerTPState.setLevel(logging.DEBUG)
 
 logger = logging.getLogger("XPlane")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 # ########################################
@@ -196,11 +196,12 @@ class TPState(DatarefListener):
         loggerTPState.debug(f"state {self.name}: created {self.internal_name}")
 
         # Register dependant datarefs
+        self.rounding = self.get_rounding()
         self.dataref_paths = self.extract_datarefs()
         self.datarefs = {}
         for d in self.dataref_paths:
             dref = self.sim.get_dataref(d)
-            dref.rounding = 0
+            dref.rounding = self.rounding
             dref.add_listener(self)
             self.datarefs[d] = dref
 
@@ -215,6 +216,19 @@ class TPState(DatarefListener):
         datarefs = list(datarefs)
         loggerTPState.debug(f"state {self.name}: added datarefs {datarefs}")
         return datarefs
+
+    def get_rounding(self):
+        """Extracts rounding from formula if unique"""
+        rounds = re.findall("([0-9]+) round", self.formula)
+        rounds = list(rounds)
+        loggerTPState.debug(f"state {self.name}: rounds {rounds}")
+        if len(rounds) == 1:
+            return int(rounds[0])
+        return None
+
+    def is_int(self):
+        """Extracts rounding if unique"""
+        return self.rounding == 0
 
     def dataref_changed(self, dataref):
         """Callback whenever a dataref value has changed"""
@@ -243,6 +257,8 @@ class TPState(DatarefListener):
             value = ""
         # 3. Format
         if value != "":
+            if self.is_int():
+                value = int(value)
             strvalue = f"{value}"
             # loggerTPState.debug(f"state {self.name}: {expr} => {strvalue}")
         else:
@@ -431,6 +447,7 @@ class XPlaneBeacon:
         logger.debug("..ended")
 
     def update_state(self, state: str, value: str):
+        logger.debug(f"updating {state} to {value}")
         self.tpclient.stateUpdate(state, value)
 
     # ################################
@@ -499,7 +516,9 @@ class XPlane(XPlaneBeacon):
         self.datarefidx = 0  # working variable, last index
         self.datarefs = {}  # key = idx, value = dataref path { 25: "sim/time/seconds" }, in UDP packet we receive '25=67545', thus sim/time/seconds=67545.
 
-        self.states = {}
+        self.states = {}  # {state_name: TPState}
+        self.pages = {}  # {page_name: dict({path: dataref})}
+        self.current_page = "main"
 
         # internal stats
         self._max_monitored = 0  # higest number of datarefs monitored at one point in time
@@ -674,7 +693,7 @@ class XPlane(XPlaneBeacon):
                         logger.warning(f"{binascii.hexlify(data)}")
                     if total_reads % 10 == 0:
                         logger.debug(
-                            f"average socket time between reads {round(total_read_time / total_reads, 3)} ({total_reads} reads; {total_values} values sent)"
+                            f"average socket time between reads {round(total_read_time / total_reads, 3)} ({total_reads} reads; {total_values} values enqueued ({round(total_values/total_reads, 1)} per packet))"
                         )  # ignore
                 except:  # socket timeout
                     total_to = total_to + 1
@@ -911,7 +930,7 @@ class XPlane(XPlaneBeacon):
     # Touch Portal plugin interface
     #
     def init(self):
-        states_defs = {}
+        pages = {}
         if not os.path.exists(DYNAMIC_STATES):
             logger.debug(f"no file {DYNAMIC_STATES}")
             return
@@ -919,14 +938,25 @@ class XPlane(XPlaneBeacon):
         with open(DYNAMIC_STATES, "r") as fp:
             states = json.load(fp)
             version = states.get("version")
-            if version != "1":
+            if version != "2":
                 logger.warning(f"states file {DYNAMIC_STATES} invalid version {version}")
                 return
-            states_defs = states.get("states")
+            pages = states.get("pages")
 
-        for name, formula in states_defs.items():
-            state = TPState(name=name, formula=formula, sim=self)
-            self.add_datarefs_to_monitor(state.datarefs)
-            self.states[state.internal_name] = state
+        for page, states_defs in pages.items():
+            for name, formula in states_defs.items():
+                # state_name = dotkey(page, name)
+                state = TPState(name=name, formula=formula, sim=self)
+                self.add_datarefs_to_monitor(state.datarefs)
+                self.states[state.internal_name] = state
+            logger.debug(f"page {page} loaded {len(states_defs)}")
 
         self.connect()
+
+    def change_page(self, page_name: str):
+        if page_name in self.pages:
+            if self.current_page in self.pages:
+                self.remove_datarefs_to_monitor(self.pages[self.current_page])
+            self.current_page = page_name
+            self.add_datarefs_to_monitor(self.pages[self.current_page])
+            logger.info(f"changed to page {self.current_page}")
