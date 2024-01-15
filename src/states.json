@@ -1,0 +1,11 @@
+{
+    "version": "1",
+    "states":
+    {
+        "LS Captain": "{$AirbusFBW/OHPLightsATA31[28]$} 0 round",
+        "FD Captain": "{$AirbusFBW/OHPLightsATA31[26]$} 0 round",
+        "Master Warn": "{$AirbusFBW/MasterWarn$}",
+        "Master Caut": "{$AirbusFBW/MasterCaut$}",
+        "Ext. Power": "{$AirbusFBW/EnableExternalPower$}"
+    }
+}

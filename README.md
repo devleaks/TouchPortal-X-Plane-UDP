@@ -1,74 +1,74 @@
-# TouchPortal-Python-Template
-- [TouchPortal-Python-Template](#TouchPortal-Python-Template)
-- [What is this?](#What-is-this?)
-- [How do I use this?](#how-do-i-use-this)
-    - [Setup](#setup)
-        - [Creating the environment](#creating-the-environment)
-        - [Activate the environment](#activate-the-environment)
-        - [Updating Dependencies](#updating-dependencies)
-        - [Deactivate environment](#deactivate-environment)
-    - [Github action](#github-action)
-    
-        
+# Touch Portal X-Plane UDP Plugin
 
-## What is this?
-This template have basic structure of TouchPortal plugin using [TouchPortal-Python-API](https://github.com/KillerBOSS2019/TouchPortal-API).
-It contains
-- workflow to build your plugin when creating release using github action matrix.
-- `TPPEntry.py` contains infomation to generate a new `entry.tp`.
-- `main.py` that shows you how to setup callbacks and logger.
-- `build.py` that helps you to build your plugin into `.tpp` file.
-- `start.sh` that allows user to run the executable on Mac and Linux system.
+Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that aims are providing minimal hooks
+ - to trigger X-Plane commands,
+ - to collect X-Plane dataref values to change appearance of Touch Portal buttons.
 
-## How do I use this?
-1. In the top right corner of your screen, where **Clone** usually is, you have a **Use this template** button to click.
+Before using the plugin, users must collect information in X-Plane about the datarefs
+that will drive button appearance.
+This information will be used to create Touch Portal (dynamic) states based on X-Plane datarefs.
+The plugin will then ensure that when the dataref value changes, the Touch Portal state changes accordingly.
 
-![](https://docs.github.com/assets/images/help/repository/use-this-template-button.png)
+To interface to X-Plane, the plugin uses X-Plane built-in UDP «API».
+This API has shortcomings but is mostly sufficent to create appealing cockpit and dashboards.
 
-2. Give the repository a name and a description.
+For other design operations, Touch Portal creators will use Touch Portal tools to create cockpits and dashboards.
 
-![](https://docs.github.com/assets/images/help/repository/create-repository-name.png)
 
-3. Click **Create repository from template**.
+## X-Plane Datarefs and Touch Portal States
 
-### Setup
-It is recommanded to use a dependency manager. In this case we will be using a [virtual environment](https://docs.python.org/3/library/venv.html).
+To bridge X-Plane Datarefs and Touch Portal States, the plugin uses a simple,
+single definition file that establish the link between both.
+A link is declared as such
 
-#### Creating the environment
-Create a virtual environment in the folder `.venv`.
-```shell
-$ python -m venv .venv
+"Touch Portal State Name" = "Expression containing datarefs"
+
+Touch Portal uses the following conventions.
+
+ 1. A variable named `variable-name` is accessed by the the syntax {$variable-name$}.
+
+ 2. Expressions combining several variables use reverse polish notation (RPN):
+    The formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +` in RPN.
+
+To avoid bringing new confusing syntax, the Touch Portal X-Plane UDL Plugin uses the same convention.
+The Expression containing datarefs will use similar convention.
+In an expression, a dataref will be referenced `{$dataref/path/in/simulator$}`.
+The expression itself will use RPN.
+
+For exemple, if the dataref `` gives the barometric pressure in inches of mercury,
+the following formula convert the pressure in hecto-Pascal (and round it with 0 decimal):
+```
+"Pressure in hPa" = "{$sim/cockpit/misc/barometer_setting$} 33.8639 * 0 round"
 ```
 
-#### Activate the environment
-It will change based on your operating system and shell.
-```shell
-# Linux, Bash
-$ source .venv/bin/activate
-# Linux, Fish
-$ source .venv/bin/activate.fish
-# Linux, Csh
-$ source .venv/bin/activate.csh
-# Linux, PowerShell Core
-$ .venv/bin/Activate.ps1
-# Windows, cmd.exe
-> .venv\Scripts\activate.bat
-# Windows, PowerShell
-> .venv\Scripts\Activate.ps1
-```
+Please recall that following the X-Plane UDP protocol, all dataref values returned by the simulator
+are `float` numbers.
 
-#### Updating Dependencies
-Once the environment is created and activated, you can install any libraries that's required for your project.
-after you've installed the library you should create `requirements.txt` using this command.
-```shell
-$ pip freeze > requirements.txt
-```
+The above declaration will create a Touch Portal state named `Pressure in hPa` and its value
+will reflect the value of the `sim/cockpit/misc/barometer_setting` multiplied by 33.6839 and rounded.
 
-#### Deactivate environment
-When environment is activated, you can exit the environment by using this command.
-```shell
-$ deactivate
-```
+All declarations are in the file `states.json` in a JSON-formatted file.
 
-### Github action
-This template also include a github action scrip that when you publish a release it will automatically build Mac, Windows and Linux .tpp file and upload to the release. It basically go to each system and run the build.py that you've created. and publish the result.
+Declarations all need to be created first before the creator of a page with buttons
+can access them in Touch Portal application.
+
+## X-Plane Commands
+
+To execute a command in X-Plane, the Touch Portal creator uses the Execute X-Plane Command action
+and supplies the command to execute like `sim/map/show_toggle`.
+
+## X-Plane Dataref Value Change
+
+To change the value of a dataref in the simulator, the creator can use the `Set dataref value` action.
+The action will need the dataref that need to be set and the value.
+
+## X-Plane Long Press Command
+
+To execute a long press command in X-Plane, the Touch Portal creator uses the Execute Long Press X-Plane Command action
+and supplies the command to execute.
+
+The execution of Long Press command requires a XPPython3 plugin to execute these commands
+to circumvent a X-Plane UDP API shortcoming.
+
+
+Last updated 14-JAN-2024

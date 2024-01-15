@@ -7,7 +7,7 @@ PLUGIN_MAIN = "main.py"
 PLUGIN_MAIN: This lets tppbuild know where your main python plugin file is located so it will know which file to compile.
 """
 
-PLUGIN_EXE_NAME = "pluginexample"
+PLUGIN_EXE_NAME = "TouchPortal-X-Plane-UDP"
 """
 PLUGIN_EXE_NAME: This defines what you want your plugin executable to be named. tppbuild will also use this for the .tpp file in the format:
                 `pluginname + "_v" + version + "_" + os_name + ".tpp"`
@@ -28,10 +28,10 @@ build entry.tp & validate it for you. If validation fails, tppbuild will exit.
 
 PLUGIN_ENTRY_INDENT = 2
 """
-PLUGIN_ENTRY_INDENT: This is used for generating new entry.tp with indentations using python entry struct. default is 2 indents. 
+PLUGIN_ENTRY_INDENT: This is used for generating new entry.tp with indentations using python entry struct. default is 2 indents.
 """
 
-PLUGIN_ROOT = "TPExamplePlugin"
+PLUGIN_ROOT = "TouchPortal-X-Plane-UDP"
 """ This is the root folder name that will be inside of .tpp """
 
 PLUGIN_ICON = r""
@@ -57,7 +57,7 @@ with open(entry, "r") as f:
 """
 If you have any required file(s) that your plugin needs, put them in this list.
 """
-ADDITIONAL_FILES = []
+ADDITIONAL_FILES = ["states.json"]
 
 """
 start.sh file is not needed for Windows machine. as it can execute the exe itself where as
@@ -69,9 +69,7 @@ if platform != "win32":
 """
 Any additional arguments to be passed to Pyinstaller. Optional.
 """
-ADDITIONAL_PYINSTALLER_ARGS = [
-    "--log-level=WARN"
-]
+ADDITIONAL_PYINSTALLER_ARGS = ["--log-level=WARN"]
 
 if __name__ == "__main__":
     tppbuild.runBuild()
