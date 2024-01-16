@@ -1,22 +1,91 @@
 {
-    "version": "2",
+    "version": "3",
+    "home-page": "/(main).tml",
     "pages":
-    {
-        "/(main).tml":
+    [
         {
-            "LS Captain": "{$AirbusFBW/OHPLightsATA31[28]$} 2 round 0 eq not",
-            "FD Captain": "{$AirbusFBW/OHPLightsATA31[26]$} 2 round 0 eq not",
-            "Master Warn": "{$AirbusFBW/MasterWarn$}",
-            "Master Caut": "{$AirbusFBW/MasterCaut$}",
-            "Ext. Power": "{$AirbusFBW/EnableExternalPower$}"
+            "name": "/(main).tml",
+            "states":
+            [
+                {
+                    "name": "LS Captain",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[28]$} 0 round",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "name": "FD Captain",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[26]$} 0 round",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "name": "Master Warn",
+                    "formula": "{$AirbusFBW/MasterWarn$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Master Caut",
+                    "formula": "{$AirbusFBW/MasterCaut$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Ext. Power",
+                    "formula": "{$AirbusFBW/EnableExternalPower$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                }
+            ]
         },
-        "/A32NX_MAIN.tml":
         {
-            "CSTR": "{$AirbusFBW/OHPLightsATA31[16]$} 2 round 0 eq not",
-            "WPT": "{$AirbusFBW/OHPLightsATA31[17]$} 2 round 0 eq not",
-            "VOR.D": "{$AirbusFBW/OHPLightsATA31[18]$} 2 round 0 eq not",
-            "NDB": "{$AirbusFBW/OHPLightsATA31[19]$} 2 round 0 eq not",
-            "ARPT": "{$AirbusFBW/OHPLightsATA31[20]$} 2 round 0 eq not"
+            "name": "/A32NX_MAIN.tml",
+            "states":
+            [
+                {
+                    "name": "CSTR",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[16]$} 2 round 0 eq not",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "name": "WPT",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[17]$} 2 round 0 eq not",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "name": "VOR.D",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[18]$} 2 round 0 eq not",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "name": "NDB",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[19]$} 2 round 0 eq not",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "name": "ARPT",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[20]$} 2 round 0 eq not",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                }
+            ]
+        },
+        {
+            "name": "/A32NX_OVHD_UP.tml",
+            "states": []
+        },
+        {
+            "name": "/A32NX_OVHD_DOWN.tml",
+            "states":[]
+        },
+        {
+            "name": "/A32NX_PEDESTAL.tml",
+            "states":[]
         }
-    }
+    ]
 }

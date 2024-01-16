@@ -22,46 +22,43 @@ loggerCommand = logging.getLogger("Command")
 # loggerCommand.setLevel(logging.DEBUG)
 
 loggerDataref = logging.getLogger("Dataref")
-loggerDataref.setLevel(logging.DEBUG)
+# loggerDataref.setLevel(logging.DEBUG)
 
 loggerTPState = logging.getLogger("TPState")
-loggerTPState.setLevel(logging.DEBUG)
+# loggerTPState.setLevel(logging.DEBUG)
 
 logger = logging.getLogger("XPlane")
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 
 # ########################################
 # Global constant
 #
-# Data too delicate to be put in constant.py
 # !! adjust with care !!
-# UDP sends at most ~40 to ~50 dataref values per packet.
-
-DATA_SENT = 2  # times per second, X-Plane send that data on UDP every that often. Too often will slow down X-PLANE.
-
 DEFAULT_REQ_FREQUENCY = 1  # if no frequency is supplied (or forced to None), this is used.
 
+MAX_DREF_COUNT = 80  # Absolute maximum number of dataref that can be requested to X-Plane, CTD around ~100 datarefs
+# UDP sends at most ~40 to ~50 dataref values per packet.
+
 LOOP_ALIVE = 100  # report loop activity every 1000 executions on DEBUG, set to None to suppress output
-RECONNECT_TIMEOUT = 10  # seconds
-
-SOCKET_TIMEOUT = 5  # seconds
-MAX_TIMEOUT_COUNT = 5  # after x timeouts, assumes connection lost, disconnect, and restart later
-
-MAX_DREF_COUNT = 80  # Maximum number of dataref that can be requested to X-Plane, CTD around ~100 datarefs
-
-TERMINATE_QUEUE = "quit"
+SOCKET_TIMEOUT = 5  # seconds, when not receiving a UDP packet for 5 seconds, declare a timeout
+MAX_TIMEOUT_COUNT = 5  # count, after MAX_TIMEOUT_COUNT timeouts, assumes connection lost, disconnect, and try to reconnect
+RECONNECT_TIMEOUT = 10  # seconds, when disconnceted, retries every RECONNECT_TIMEOUT seconds
 
 # Touch Portal (internal) Feedback shortcuts
 STATE_XP_CONNECTED = TP_PLUGIN_STATES["XPlaneConnected"]["id"]
 STATE_XP_CONNMON = TP_PLUGIN_STATES["ConnectionMonitoringRunning"]["id"]
 STATE_XP_DREFMON = TP_PLUGIN_STATES["MonitoringRunning"]["id"]
-# Note: in TP, strings are compare as strings: "1" != "1.0"
-TRUE = "1"
-FALSE = "0"
 
-PATTERN_DOLCB = "{\\$([^\\}]+?)\\$}"  # {$ ... $}: Touch portal variable in formula syntax.
+# Touch Portal dynamic states
 DYNAMIC_STATES = "states.json"
+PATTERN_DOLCB = "{\\$([^\\}]+?)\\$}"  # {$ ... $}: Touch portal variable in formula syntax.
+
+# Dynamic state values: note: strings are compare as strings: "1" != "1.0"
+INT_TRUE = "1"
+INT_FALSE = "0"
+BOOL_TRUE = "TRUE"
+BOOL_FALSE = "FALSE"
 
 
 # ################################################################################
@@ -118,6 +115,18 @@ class Dataref:
 
     def value(self):
         return self.current_value
+
+    def set_rounding(self, rounding: int):
+        """Dataref rouding is unique for all instances of the dataref.
+        It is set to the finest (largest) required rounding.
+        I.e. if a button requires 3 decimals, and another 6, 6 wins.
+        """
+        if rounding is None:  # we don't change it, to reset, set dataref.rounding = None.
+            return
+        if self.rounding is not None:
+            self.rounding = max(self.rounding, rounding)
+        else:
+            self.rounding = rounding
 
     def rounded_value(self, rounding: int = None):
         return self.round(self._current_value, rounding=rounding)
@@ -184,10 +193,12 @@ class DatarefListener(ABC):
 # Touch Portal State <-> X-Plane Dataref Bridge
 #
 class TPState(DatarefListener):
-    def __init__(self, name: str, formula: str, sim) -> None:
+    def __init__(self, name: str, formula: str, config: dict, sim) -> None:
         DatarefListener.__init__(self, name=name)
         self.internal_name = TPState.mkintname(name)
         self.formula = formula
+        self.rounding = self.get_rounding()
+        self.datatype = config.get("type")
         self.sim = sim
         self.previous_value = None
 
@@ -196,17 +207,17 @@ class TPState(DatarefListener):
         loggerTPState.debug(f"state {self.name}: created {self.internal_name}")
 
         # Register dependant datarefs
-        self.rounding = self.get_rounding()
         self.dataref_paths = self.extract_datarefs()
         self.datarefs = {}
         for d in self.dataref_paths:
             dref = self.sim.get_dataref(d)
-            dref.rounding = self.rounding
+            dref.set_rounding(config.get("dataref-rounding"))
             dref.add_listener(self)
             self.datarefs[d] = dref
 
     @staticmethod
     def mkintname(name):
+        """Create an internal named from the display string, all alphanumeric uppercase, no space, dash, etc."""
         temp_name = "".join(e for e in name if e.isalnum()).upper()
         return ".".join([PLUGIN_ID, temp_name])
 
@@ -222,13 +233,7 @@ class TPState(DatarefListener):
         rounds = re.findall("([0-9]+) round", self.formula)
         rounds = list(rounds)
         loggerTPState.debug(f"state {self.name}: rounds {rounds}")
-        if len(rounds) == 1:
-            return int(rounds[0])
-        return None
-
-    def is_int(self):
-        """Extracts rounding if unique"""
-        return self.rounding == 0
+        return int(rounds[-1]) if len(rounds) > 0 else None
 
     def dataref_changed(self, dataref):
         """Callback whenever a dataref value has changed"""
@@ -246,8 +251,8 @@ class TPState(DatarefListener):
             value = self.sim.get_dataref_value(dataref_name)
             value_str = str(value) if value is not None else "0"
             expr = expr.replace(f"{{${dataref_name}$}}", value_str)
-        # 2. Execute the formula
         # loggerTPState.debug(f"state {self.name}: formula {self.formula} => {expr}")
+        # 2. Execute the formula
         r = RPC(expr)
         value = ""
         try:
@@ -255,22 +260,38 @@ class TPState(DatarefListener):
         except:
             loggerTPState.warning(f"state {self.name}: error evaluating expression {self.formula}", exc_info=True)
             value = ""
+        # loggerTPState.debug(f"state {self.name}: {expr} => {value}")
         # 3. Format
-        if value != "":
-            if self.is_int():
+        # In Touch Portal "0" is quite different from "1.0".
+        # So by forcing a "type" for Touch Portal "states", we will prevent sending "1.0" when a integer or boolean is expected.
+        if value == "" or value is None:  # no value is no value...
+            return ""
+
+        if self.datatype in ["int", "integer"]:
+            try:
                 value = int(value)
-            strvalue = f"{value}"
-            # loggerTPState.debug(f"state {self.name}: {expr} => {strvalue}")
+                strvalue = f"{value}"
+            except:
+                logger.warning(f"could not convert to datatype {self.datatype}")
+        elif self.datatype in ["float", "number", "decimal"]:
+            try:
+                value = float(value)
+                if self.rounding is not None:
+                    value = round(value, self.rounding)
+                strvalue = f"{value}"  # should format?
+            except:
+                logger.warning(f"could not convert to datatype {self.datatype}")
+        elif self.datatype in ["bool", "boolean", "yesno"]:
+            try:
+                value = value is not None and value != 0
+                strvalue = f"{value}".upper()  # TRUE or FALSE, if 0 or 1 needed, please return a int
+            except:
+                logger.warning(f"could not convert to datatype {self.datatype}")
         else:
+            logger.warning(f"invalid datatype {self.datatype}")
             strvalue = ""
+        # loggerTPState.debug(f"state {self.name}: formula {self.formula} => {strvalue}")
         return strvalue
-
-    def definition(self):
-        """Returns a state definition for Touch Portal"""
-        return {"id": self.internal_name, "desc": self.name, "type": "text", "default": "0"}
-
-    def to_json(self):
-        return json.dumps(self.definition(), indent=2)
 
 
 # ################################################################################
@@ -280,10 +301,6 @@ class TPState(DatarefListener):
 #
 class XPlaneIpNotFound(Exception):
     args = "Could not find any running XPlane instance in network."
-
-
-class XPlaneTimeout(Exception):
-    args = "XPlane timeout."
 
 
 class XPlaneVersionNotSupported(Exception):
@@ -389,10 +406,10 @@ class XPlaneBeacon:
                     self.beacon_data["hostname"] = hostname.decode()
                     self.beacon_data["XPlaneVersion"] = xplane_version_number
                     self.beacon_data["role"] = role
-                    self.update_state(STATE_XP_CONNECTED, TRUE)
+                    self.update_state(STATE_XP_CONNECTED, INT_TRUE)
                     logger.info(f"XPlane Beacon Version: {beacon_major_version}.{beacon_minor_version}.{application_host_id}")
                 else:
-                    self.update_state(STATE_XP_CONNECTED, FALSE)
+                    self.update_state(STATE_XP_CONNECTED, INT_FALSE)
                     logger.warning(f"XPlane Beacon Version not supported: {beacon_major_version}.{beacon_minor_version}.{application_host_id}")
                     raise XPlaneVersionNotSupported()
 
@@ -462,7 +479,7 @@ class XPlaneBeacon:
             self.connect_thread = threading.Thread(target=self.connect_loop)
             self.connect_thread.name = "XPlaneBeacon::connect_loop"
             self.connect_thread.start()
-            self.update_state(STATE_XP_CONNMON, TRUE)
+            self.update_state(STATE_XP_CONNMON, INT_TRUE)
             logger.debug("connect_loop started")
         else:
             logger.debug("connect_loop already started")
@@ -475,7 +492,7 @@ class XPlaneBeacon:
             logger.debug("disconnecting..")
             self.cleanup()
             self.beacon_data = {}
-            self.update_state(STATE_XP_CONNECTED, FALSE)
+            self.update_state(STATE_XP_CONNECTED, INT_FALSE)
             self.should_not_connect.set()
             wait = RECONNECT_TIMEOUT
             logger.debug(f"..asked to stop connect_loop.. (this may last {wait} secs.)")
@@ -483,12 +500,12 @@ class XPlaneBeacon:
             if self.connect_thread.is_alive():
                 logger.warning(f"..thread may hang..")
             self.should_not_connect = None
-            self.update_state(STATE_XP_CONNMON, FALSE)
+            self.update_state(STATE_XP_CONNMON, INT_FALSE)
             logger.debug("..disconnected")
         else:
             if self.connected:
                 self.beacon_data = {}
-                self.update_state(STATE_XP_CONNECTED, FALSE)
+                self.update_state(STATE_XP_CONNECTED, INT_FALSE)
                 logger.debug("..connect_loop not running..disconnected")
             else:
                 logger.debug("..not connected")
@@ -508,6 +525,9 @@ class XPlane(XPlaneBeacon):
     MCAST_PORT = 49707  # (MCAST_PORT was 49000 for XPlane10)
     BEACON_TIMEOUT = 3.0  # seconds
 
+    # Internal key word
+    TERMINATE_QUEUE = "quit"
+
     def __init__(self, tpclient):
         self.all_datarefs = {}  # all registed datarefs, exist only once here: { "sim/time/seconds": <Dataref> }
         self.datarefs_to_monitor = {}  # dataref path and number of objects monitoring
@@ -518,6 +538,7 @@ class XPlane(XPlaneBeacon):
 
         self.states = {}  # {state_name: TPState}
         self.pages = {}  # {page_name: dict({path: dataref})}
+        self.home_page = None
         self.current_page = "main"
 
         # internal stats
@@ -701,7 +722,7 @@ class XPlane(XPlaneBeacon):
                     if total_to >= MAX_TIMEOUT_COUNT:  # attemps to reconnect
                         logger.warning("too many times out, disconnecting, upd_enqueue terminated")  # ignore
                         self.beacon_data = {}
-                        self.update_state(STATE_XP_CONNECTED, FALSE)
+                        self.update_state(STATE_XP_CONNECTED, INT_FALSE)
                         if self.no_upd_enqueue is not None and not self.no_upd_enqueue.is_set():
                             self.no_upd_enqueue.set()
         self.no_upd_enqueue = None
@@ -723,7 +744,7 @@ class XPlane(XPlaneBeacon):
             values = self.udp_queue.get()
             bl = self.udp_queue.qsize()
             maxbl = max(bl, maxbl)
-            if type(values) is str and values == TERMINATE_QUEUE:
+            if type(values) is str and values == XPlane.TERMINATE_QUEUE:
                 dequeue_run = False
                 continue
             try:
@@ -797,8 +818,12 @@ class XPlane(XPlaneBeacon):
         # Add those to monitor
         prnt = []
         for path in self.datarefs_to_monitor.keys():
-            if self._monitor_dataref(path, freq=DATA_SENT):
-                prnt.append(path)
+            d = self.all_datarefs.get(path)
+            if d is not None:
+                if self._monitor_dataref(d.path, freq=d.update_frequency):
+                    prnt.append(d.path)
+            else:
+                logger.warning(f"dataref {path} not found")
         logger.info(f"monitoring datarefs {prnt}")
         logger.debug(f">>>>> monitoring++{len(self.datarefs_to_monitor)}/{self._max_monitored}")
 
@@ -837,7 +862,6 @@ class XPlane(XPlaneBeacon):
 
                 self.datarefs_to_monitor[d.path] = self.datarefs_to_monitor[d.path] - 1
                 if self.datarefs_to_monitor[d.path] == 0:  # if no more interested, remove it
-                    prnt.append(d.path)
                     del self.datarefs_to_monitor[d.path]
             else:
                 logger.debug(f"no need to remove {d.path}")
@@ -884,7 +908,7 @@ class XPlane(XPlaneBeacon):
             self.dref_thread = threading.Thread(target=self.dataref_listener)
             self.dref_thread.name = "XPlaneUDP::dataref_listener"
             self.dref_thread.start()
-            self.update_state(STATE_XP_DREFMON, TRUE)
+            self.update_state(STATE_XP_DREFMON, INT_TRUE)
             logger.info("dataref listener started")
         else:
             logger.info("dataref listener running.")
@@ -896,10 +920,10 @@ class XPlane(XPlaneBeacon):
     def stop(self):
         self.suppress_all_datarefs_monitoring()  # cancel previous subscriptions
         if self.udp_queue is not None and self.dref_thread is not None:
-            self.udp_queue.put(TERMINATE_QUEUE)
+            self.udp_queue.put(XPlane.TERMINATE_QUEUE)
             self.dref_thread.join()
             self.dref_thread = None
-            self.update_state(STATE_XP_DREFMON, FALSE)
+            self.update_state(STATE_XP_DREFMON, INT_FALSE)
             logger.debug("dataref listener stopped")
         if self.no_upd_enqueue is not None:
             self.no_upd_enqueue.set()
@@ -938,23 +962,30 @@ class XPlane(XPlaneBeacon):
         with open(DYNAMIC_STATES, "r") as fp:
             states = json.load(fp)
             version = states.get("version")
-            if version != "2":
+            if version != "3":
                 logger.warning(f"states file {DYNAMIC_STATES} invalid version {version}")
                 return
             pages = states.get("pages")
+            self.home_page = states.get("home-page")
 
-        for page, states_defs in pages.items():
-            for name, formula in states_defs.items():
-                # state_name = dotkey(page, name)
-                state = TPState(name=name, formula=formula, sim=self)
-                self.add_datarefs_to_monitor(state.datarefs)
-                self.states[state.internal_name] = state
-            logger.debug(f"page {page} loaded {len(states_defs)}")
+        for page in pages:
+            page_name = page.get("name")
+            self.pages[page_name] = {}
+            page_states = page.get("states")
+            for state in page_states:
+                name = state.get("name")
+                formula = state.get("formula")
+                tpstate = TPState(name=name, formula=formula, config=state, sim=self)
+                self.pages[page_name] = self.pages[page_name] | tpstate.datarefs
+                # self.add_datarefs_to_monitor(tpstate.datarefs)
+                self.states[tpstate.internal_name] = tpstate
+            logger.debug(f"page {page_name} loaded {len(page_states)}")
 
+        self.change_page(self.home_page)
         self.connect()
 
     def change_page(self, page_name: str):
-        if page_name in self.pages:
+        if page_name in self.pages.keys():
             if self.current_page in self.pages:
                 self.remove_datarefs_to_monitor(self.pages[self.current_page])
             self.current_page = page_name
