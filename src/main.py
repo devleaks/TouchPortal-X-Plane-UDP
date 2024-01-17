@@ -141,12 +141,14 @@ def onAction(data):
 @TPClient.on(TP.TYPES.onShutdown)
 def onShutdown(data):
     g_log.info("Received shutdown event from TP Client.")
-    g_log.info(f"Terminating X-Plane client..")
-    XPClient.terminate()
-    g_log.info(f"..terminated")
-    g_log.info(f"Disconnecting from Touch Portal..")
-    TPClient.disconnect()
-    g_log.info(f"..disconnected")
+    if XPClient.connected:
+        g_log.info(f"Terminating XP client..")
+        XPClient.terminate()
+        g_log.info(f"..terminated")
+    if TPClient.isConnected():
+        g_log.info(f"Disconnecting from Touch Portal..")
+        TPClient.disconnect()
+        g_log.info(f"..disconnected")
 
 
 # Error handler
@@ -159,6 +161,7 @@ def onError(exc):
 def onAction(data):
     g_log.debug(data)
 
+    # {'type': 'broadcast', 'event': 'pageChange', 'pageName': '/(main).tml'}
     if not (broadcast_event := data.get("event")) or not (page_name := data.get("pageName")):
         return
 
@@ -167,17 +170,12 @@ def onAction(data):
         g_log.info(f"changed page to {page_name}")
 
 
-# {'type': 'broadcast', 'event': 'pageChange', 'pageName': '/(main).tml'}
+# @TPClient.on(TP.TYPES.allMessage)
+# def onAction(data):
+#     g_log.debug(data)
 
 
-@TPClient.on(TP.TYPES.allMessage)
-def onAction(data):
-    g_log.debug(data)
-
-
-## main
-
-
+# Main
 def main():
     global TPClient, XPClient, g_log
     ret = 0  # sys.exit() value
@@ -256,12 +254,14 @@ def main():
         ret = -1
     finally:
         # Make sure TP Client is stopped, this will do nothing if it is already disconnected.
-        g_log.info(f"Terminating XP client..")
-        XPClient.terminate()
-        g_log.info(f"..terminated")
-        g_log.info(f"Disconnecting from Touch Portal..")
-        TPClient.disconnect()
-        g_log.info(f"..disconnected")
+        if XPClient.connected:
+            g_log.info(f"Terminating XP client..")
+            XPClient.terminate()
+            g_log.info(f"..terminated")
+        if TPClient.isConnected():
+            g_log.info(f"Disconnecting from Touch Portal..")
+            TPClient.disconnect()
+            g_log.info(f"..disconnected")
 
     # TP disconnected, clean up.
     del XPClient

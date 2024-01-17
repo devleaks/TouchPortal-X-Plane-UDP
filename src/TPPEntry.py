@@ -1,5 +1,7 @@
 # Version string of this plugin (in Python style).
-__version__ = "1.1"
+__version__ = "1.3"
+
+DYNAMIC_STATES_FILE_VERSION = "3"
 
 
 def dotkey(*a):
@@ -18,7 +20,7 @@ def pluginkey(*a):
 # Basic plugin metadata
 TP_PLUGIN_INFO = {
     "sdk": 6,
-    "version": int(float(__version__) * 100),  # TP only recognizes integer version numbers
+    "version": int(float(__version__) * 100) + int(DYNAMIC_STATES_FILE_VERSION),  # TP only recognizes integer version numbers
     "name": "Touch Portal X-Plane UDP Plugin",
     "id": PLUGIN_ID,
     # Startup command, with default logging options read from configuration file (see main() for details)

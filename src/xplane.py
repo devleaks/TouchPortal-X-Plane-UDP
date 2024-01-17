@@ -16,16 +16,16 @@ from queue import Queue
 from abc import ABC, abstractmethod
 
 from rpc import RPC
-from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, dotkey
+from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, DYNAMIC_STATES_FILE_VERSION, dotkey
 
 loggerCommand = logging.getLogger("Command")
 # loggerCommand.setLevel(logging.DEBUG)
 
 loggerDataref = logging.getLogger("Dataref")
-# loggerDataref.setLevel(logging.DEBUG)
+loggerDataref.setLevel(logging.DEBUG)
 
 loggerTPState = logging.getLogger("TPState")
-# loggerTPState.setLevel(logging.DEBUG)
+loggerTPState.setLevel(logging.DEBUG)
 
 logger = logging.getLogger("XPlane")
 # logger.setLevel(logging.DEBUG)
@@ -45,16 +45,18 @@ SOCKET_TIMEOUT = 5  # seconds, when not receiving a UDP packet for 5 seconds, de
 MAX_TIMEOUT_COUNT = 5  # count, after MAX_TIMEOUT_COUNT timeouts, assumes connection lost, disconnect, and try to reconnect
 RECONNECT_TIMEOUT = 10  # seconds, when disconnceted, retries every RECONNECT_TIMEOUT seconds
 
-# Touch Portal (internal) Feedback shortcuts
+# Touch Portal (internal) feedback shortcuts for connection status
 STATE_XP_CONNECTED = TP_PLUGIN_STATES["XPlaneConnected"]["id"]
 STATE_XP_CONNMON = TP_PLUGIN_STATES["ConnectionMonitoringRunning"]["id"]
 STATE_XP_DREFMON = TP_PLUGIN_STATES["MonitoringRunning"]["id"]
 
 # Touch Portal dynamic states
-DYNAMIC_STATES = "states.json"
+# See TPPEntry.DYNAMIC_STATES_FILE_VERSION
+DYNAMIC_STATES_FILE_NAME = "states.json"
 PATTERN_DOLCB = "{\\$([^\\}]+?)\\$}"  # {$ ... $}: Touch portal variable in formula syntax.
 
-# Dynamic state values: note: strings are compare as strings: "1" != "1.0"
+# Dynamic state values: note: Dynamic state values are always strings, sometimes confined to a valid list of values.
+# Strings are compared as strings: "1" != "1.0", not number 1 == 1.0.
 INT_TRUE = "1"
 INT_FALSE = "0"
 BOOL_TRUE = "TRUE"
@@ -128,16 +130,23 @@ class Dataref:
         else:
             self.rounding = rounding
 
+    def add_listener(self, obj):
+        if not isinstance(obj, DatarefListener):
+            loggerDataref.warning(f"{self.path} not a listener {obj}")
+        if obj not in self.listeners:
+            self.listeners.append(obj)
+        loggerDataref.debug(f"{self.path} added listener {obj.name} ({len(self.listeners)})")
+
     def rounded_value(self, rounding: int = None):
         return self.round(self._current_value, rounding=rounding)
 
     def has_changed(self):
-        if self.previous_value is None and self.current_value is None:
-            return False
-        elif self.previous_value is None and self.current_value is not None:
-            return True
-        elif self.previous_value is not None and self.current_value is None:
-            return True
+        # if self.previous_value is None and self.current_value is None:
+        #     return False
+        # elif self.previous_value is None and self.current_value is not None:
+        #     return True
+        # elif self.previous_value is not None and self.current_value is None:
+        #     return True
         return self.current_value != self.previous_value
 
     def round(self, new_value, rounding: int = None):
@@ -150,32 +159,23 @@ class Dataref:
     def update_value(self, new_value, cascade: bool = False) -> bool:
         self._previous_value = self._current_value  # raw
         self._current_value = new_value  # raw
-        self.previous_value = self.current_value  # exposed
-        self.current_value = self.rounded_value()
         self._updated = self._updated + 1
         self._last_updated = datetime.now().astimezone()
-        if self.has_changed():
-            self._changed = self._changed + 1
-            self._last_changed = datetime.now().astimezone()
-            loggerDataref.debug(f"dataref {self.path} updated {self.previous_value} -> {self.current_value}")
-            if cascade:
-                self.notify()
-            return True
-        # loggerDataref.error(f"dataref {self.path} updated")
-        return False
-
-    def add_listener(self, obj):
-        if not isinstance(obj, DatarefListener):
-            loggerDataref.warning(f"{self.path} not a listener {obj}")
-        if obj not in self.listeners:
-            self.listeners.append(obj)
-        loggerDataref.debug(f"{self.path} added listener {obj.name} ({len(self.listeners)})")
+        self.previous_value = self.current_value  # exposed
+        self.current_value = self.rounded_value()
+        if not self.has_changed():
+            return False
+        self._changed = self._changed + 1
+        self._last_changed = datetime.now().astimezone()
+        loggerDataref.debug(f"dataref {self.path} updated {self.previous_value} -> {self.current_value} (cascade={cascade})")
+        if cascade:
+            self.notify()
+        return True
 
     def notify(self):
-        if self.has_changed():
-            for lsnr in self.listeners:
-                lsnr.dataref_changed(self)
-                loggerDataref.debug(f"{self.path}: notified {lsnr.name}")
+        for lsnr in self.listeners:
+            lsnr.dataref_changed(self)
+            loggerDataref.debug(f"{self.path}: notified {lsnr.name}")
 
 
 class DatarefListener(ABC):
@@ -193,12 +193,11 @@ class DatarefListener(ABC):
 # Touch Portal State <-> X-Plane Dataref Bridge
 #
 class TPState(DatarefListener):
-    def __init__(self, name: str, formula: str, config: dict, sim) -> None:
+    def __init__(self, name: str, config: dict, sim) -> None:
         DatarefListener.__init__(self, name=name)
         self.internal_name = TPState.mkintname(name)
-        self.formula = formula
-        self.rounding = self.get_rounding()
-        self.datatype = config.get("type")
+        self.formula = config.get("formula", "")
+        self.datatype = config.get("type", "int")
         self.sim = sim
         self.previous_value = None
 
@@ -228,17 +227,11 @@ class TPState(DatarefListener):
         loggerTPState.debug(f"state {self.name}: added datarefs {datarefs}")
         return datarefs
 
-    def get_rounding(self):
-        """Extracts rounding from formula if unique"""
-        rounds = re.findall("([0-9]+) round", self.formula)
-        rounds = list(rounds)
-        loggerTPState.debug(f"state {self.name}: rounds {rounds}")
-        return int(rounds[-1]) if len(rounds) > 0 else None
-
     def dataref_changed(self, dataref):
         """Callback whenever a dataref value has changed"""
         valstr = self.value()
         # logger.debug(f"dataref {dataref.path} changed, setting {self.internal_name}={valstr}")
+        # if self.previous_value != valstr:
         self.sim.tpclient.stateUpdate(self.internal_name, valstr)
         loggerTPState.debug(f"state {self.name}: updated {self.previous_value} -> {valstr}")
         self.previous_value = valstr
@@ -249,7 +242,7 @@ class TPState(DatarefListener):
         expr = self.formula
         for dataref_name in self.dataref_paths:
             value = self.sim.get_dataref_value(dataref_name)
-            value_str = str(value) if value is not None else "0"
+            value_str = str(value) if value is not None else "0.0"
             expr = expr.replace(f"{{${dataref_name}$}}", value_str)
         # loggerTPState.debug(f"state {self.name}: formula {self.formula} => {expr}")
         # 2. Execute the formula
@@ -276,8 +269,6 @@ class TPState(DatarefListener):
         elif self.datatype in ["float", "number", "decimal"]:
             try:
                 value = float(value)
-                if self.rounding is not None:
-                    value = round(value, self.rounding)
                 strvalue = f"{value}"  # should format?
             except:
                 logger.warning(f"could not convert to datatype {self.datatype}")
@@ -789,13 +780,13 @@ class XPlane(XPlaneBeacon):
         self._write_dataref(dataref=dataref, value=vfloat)
 
     def commandOnce(self, command: str):
-        self._execute_command(Command(command))
+        self._execute_command(Command(path=command))
 
     def commandBegin(self, command: str):
-        self._execute_command(Command(command + "/begin"))
+        self._execute_command(Command(path=command + "/begin"))
 
     def commandEnd(self, command: str):
-        self._execute_command(Command(command + "/end"))
+        self._execute_command(Command(path=command + "/end"))
 
     # ################################
     #
@@ -955,15 +946,15 @@ class XPlane(XPlaneBeacon):
     #
     def init(self):
         pages = {}
-        if not os.path.exists(DYNAMIC_STATES):
-            logger.debug(f"no file {DYNAMIC_STATES}")
+        if not os.path.exists(DYNAMIC_STATES_FILE_NAME):
+            logger.debug(f"no file {DYNAMIC_STATES_FILE_NAME}")
             return
 
-        with open(DYNAMIC_STATES, "r") as fp:
+        with open(DYNAMIC_STATES_FILE_NAME, "r") as fp:
             states = json.load(fp)
             version = states.get("version")
-            if version != "3":
-                logger.warning(f"states file {DYNAMIC_STATES} invalid version {version}")
+            if version != DYNAMIC_STATES_FILE_VERSION:
+                logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version}")
                 return
             pages = states.get("pages")
             self.home_page = states.get("home-page")
@@ -974,11 +965,11 @@ class XPlane(XPlaneBeacon):
             page_states = page.get("states")
             for state in page_states:
                 name = state.get("name")
-                formula = state.get("formula")
-                tpstate = TPState(name=name, formula=formula, config=state, sim=self)
-                self.pages[page_name] = self.pages[page_name] | tpstate.datarefs
-                # self.add_datarefs_to_monitor(tpstate.datarefs)
-                self.states[tpstate.internal_name] = tpstate
+                internal_name = TPState.mkintname(name)
+                if internal_name not in self.states.keys():
+                    self.states[internal_name] = TPState(name=name, config=state, sim=self)
+                # else state already created, just add datarefs to page
+                self.pages[page_name] = self.pages[page_name] | self.states[internal_name].datarefs
             logger.debug(f"page {page_name} loaded {len(page_states)}")
 
         self.change_page(self.home_page)

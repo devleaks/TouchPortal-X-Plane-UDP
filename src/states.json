@@ -36,6 +36,12 @@
                     "formula": "{$AirbusFBW/EnableExternalPower$}",
                     "dataref-rounding": 0,
                     "type": "int"
+                },
+                {
+                    "name": "Bat1",
+                    "formula": "{$AirbusFBW/BatVolts[0]$}",
+                    "dataref-rounding": 1,
+                    "type": "float"
                 }
             ]
         },
