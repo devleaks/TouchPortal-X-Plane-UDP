@@ -1,6 +1,7 @@
 {
-    "version": "3",
-    "home-page": "/(main).tml",
+    "version": 3,
+    "home-page": "/Airbus A320/A32NX_MAIN.tml",
+    "sub-folder": "/Airbus A320",
     "pages":
     [
         {
@@ -46,9 +47,15 @@
             ]
         },
         {
-            "name": "/A32NX_MAIN.tml",
+            "name": "/Airbus A320/A32NX_MAIN.tml",
             "states":
             [
+                {
+                    "name": "Pause",
+                    "formula": "{$sim/time/paused$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
                 {
                     "name": "CSTR",
                     "formula": "{$AirbusFBW/OHPLightsATA31[16]$} 2 round 0 eq not",
@@ -78,20 +85,271 @@
                     "formula": "{$AirbusFBW/OHPLightsATA31[20]$} 2 round 0 eq not",
                     "dataref-rounding": 3,
                     "type": "int"
+                },
+                {
+                    "name": "Air speed",
+                    "formula": "{$sim/cockpit2/gauges/indicators/airspeed_kts_pilot$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Master Warn",
+                    "formula": "{$AirbusFBW/MasterWarn$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Master Caut",
+                    "formula": "{$AirbusFBW/MasterCaut$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Heading",
+                    "formula": "{$sim/cockpit2/gauges/indicators/compass_heading_deg_mag$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Altitude",
+                    "formula": "{$sim/cockpit2/gauges/indicators/altitude_ft_pilot$} 0.3048 * 0 round",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Vertical speed",
+                    "formula": "{$toliss_airbus/pfdoutputs/captain/vertical_speed$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "ND Mode",
+                    "formula": "{$AirbusFBW/NDmodeCapt$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "ND Range",
+                    "formula": "{$AirbusFBW/NDrangeCapt$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "ADFVOR1",
+                    "formula": "{$ckpt/fcu/adf1Left/anim$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "ADFVOR2",
+                    "formula": "{$ckpt/fcu/adf2Left/anim$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "Baro Value HG",
+                    "formula": "{$sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot$}",
+                    "dataref-rounding": 2,
+                    "type": "float"
+                },
+                {
+                    "name": "Baro Value hPa",
+                    "formula": "{$sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot$} 33.8639 * 0 round",
+                    "type": "int"
+                },
+                {
+                    "name": "Baro Std",
+                    "formula": "{$AirbusFBW/BaroStdCapt$}",
+                    "type": "int"
+                },
+                {
+                    "name": "Baro Unit",
+                    "formula": "{$AirbusFBW/BaroUnitCapt$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "name": "LS Captain",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[28]$} 0 round",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "name": "FD Captain",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[26]$} 0 round",
+                    "dataref-rounding": 3,
+                    "type": "int"
+                },
+                {
+                    "formula": "{$sim/cockpit2/autopilot/airspeed_dial_kts_mach$} 0 round",
+                    "type": "int",
+                    "name": "FCU speed (kn)"
+                },
+                {
+                    "formula": "{$AirbusFBW/MachCapt$} 2 round",
+                    "type": "float",
+                    "dataref-rounding": 2,
+                    "name": "FCU speed (mach)"
+                },
+                {
+                    "formula": "{$sim/cockpit2/autopilot/altitude_dial_ft$}",
+                    "type": "int05",
+                    "name": "FCU altitude",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$sim/cockpit/autopilot/heading_mag$}",
+                    "type": "int03",
+                    "name": "FCU heading",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$sim/cockpit/autopilot/vertical_velocity$}",
+                    "type": "float",
+                    "name": "FCU vertspeed"
+                },
+                {
+                    "formula": "{$AirbusFBW/SPDmanaged$}",
+                    "type": "int",
+                    "name": "FCU speed_managed",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/HDGmanaged$}",
+                    "type": "int",
+                    "name": "FCU lnav_managed",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/ALTmanaged$}",
+                    "type": "int",
+                    "name": "FCU vnav_managed",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$sim/cockpit/autopilot/airspeed_is_mach$}",
+                    "type": "int",
+                    "name": "FCU speed is mach",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/HDGTRKmode$}",
+                    "type": "int",
+                    "name": "FCU track",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/VSdashed$}",
+                    "type": "int",
+                    "name": "FCU vsdashed",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/SPDdashed$}",
+                    "type": "int",
+                    "name": "FCU spddashed",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/HDGdashed$}",
+                    "type": "int",
+                    "name": "FCU hdgdashed",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/ALT100_1000$}",
+                    "type": "int",
+                    "name": "FCU alt 100/1000",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/MetricAlt$}",
+                    "type": "int",
+                    "name": "FCU alt metric",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/AP1Engage$}",
+                    "type": "int",
+                    "name": "FCU AP 1",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/AP2Engage$}",
+                    "type": "int",
+                    "name": "FCU AP 2",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/ATHRmode$}",
+                    "type": "int",
+                    "name": "FCU A/THR",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/EXPEDilluminated$}",
+                    "type": "int",
+                    "name": "FCU EXPED",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/LOCilluminated$}",
+                    "type": "int",
+                    "name": "FCU LOC",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/APPRilluminated$}",
+                    "type": "int",
+                    "name": "FCU APPR",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/ParkBrake$}",
+                    "type": "int",
+                    "name": "Parking Brake",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/BrakeFan$}",
+                    "type": "int",
+                    "name": "Brake Fan",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/BrakeTemperatureArray[0]$} {$AirbusFBW/BrakeTemperatureArray[1]$} {$AirbusFBW/BrakeTemperatureArray[2]$} + + 3 / 0 round",
+                    "type": "int",
+                    "name": "Brake Temperature (Avg)",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$ckpt/speedbrakeUp/anim$}",
+                    "type": "int",
+                    "name": "Speed brake armed",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$ckpt/speedbrake/anim$} 0.24 + 0.25 / floor",
+                    "type": "int",
+                    "name": "Speed brake position",
+                    "dataref-rounding": 2
                 }
             ]
         },
         {
-            "name": "/A32NX_OVHD_UP.tml",
-            "states": []
+            "name": "/Airbus A320/A32NX_OVHD_UP.tml",
+            "states":
+            []
         },
         {
-            "name": "/A32NX_OVHD_DOWN.tml",
-            "states":[]
+            "name": "/Airbus A320/A32NX_OVHD_DOWN.tml",
+            "states":
+            []
         },
         {
-            "name": "/A32NX_PEDESTAL.tml",
-            "states":[]
+            "name": "/Airbus A320/A32NX_PEDESTAL.tml",
+            "states":
+            []
         }
     ]
 }

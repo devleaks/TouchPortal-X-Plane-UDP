@@ -26,4 +26,16 @@ Note that the value of a state is always a string
  - float: With decimal part
  - bool: exclusively the word TRUE or FALSE (capital letter).
 
- 
+## Cheat
+
+type will aim at providing format information as well.
+
+Currently
+
+`int04`
+
+will format as
+
+`{:04d}`
+
+We may extend to float as well if necessary (float5.3 -> {:5.3f}).

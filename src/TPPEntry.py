@@ -1,7 +1,7 @@
 # Version string of this plugin (in Python style).
 __version__ = "1.3"
 
-DYNAMIC_STATES_FILE_VERSION = "3"
+DYNAMIC_STATES_FILE_VERSION = 3
 
 
 def dotkey(*a):

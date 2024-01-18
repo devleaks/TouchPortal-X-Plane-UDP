@@ -16,19 +16,22 @@ from queue import Queue
 from abc import ABC, abstractmethod
 
 from rpc import RPC
-from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, DYNAMIC_STATES_FILE_VERSION, dotkey
+from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, DYNAMIC_STATES_FILE_VERSION
 
 loggerCommand = logging.getLogger("Command")
 # loggerCommand.setLevel(logging.DEBUG)
 
 loggerDataref = logging.getLogger("Dataref")
-loggerDataref.setLevel(logging.DEBUG)
+# loggerDataref.setLevel(logging.DEBUG)
+loggerDataref.setLevel(15)
 
 loggerTPState = logging.getLogger("TPState")
-loggerTPState.setLevel(logging.DEBUG)
+# loggerTPState.setLevel(logging.DEBUG)
+loggerTPState.setLevel(15)
 
 logger = logging.getLogger("XPlane")
 # logger.setLevel(logging.DEBUG)
+logger.setLevel(15)
 
 
 # ########################################
@@ -167,7 +170,7 @@ class Dataref:
             return False
         self._changed = self._changed + 1
         self._last_changed = datetime.now().astimezone()
-        loggerDataref.debug(f"dataref {self.path} updated {self.previous_value} -> {self.current_value} (cascade={cascade})")
+        loggerDataref.log(15, f"dataref {self.path} updated {self.previous_value} -> {self.current_value} (cascade={cascade})")
         if cascade:
             self.notify()
         return True
@@ -213,6 +216,7 @@ class TPState(DatarefListener):
             dref.set_rounding(config.get("dataref-rounding"))
             dref.add_listener(self)
             self.datarefs[d] = dref
+        loggerTPState.log(15, f"state {self.name}: created {self.internal_name}, uses datarefs {', '.join(self.datarefs.keys())}")
 
     @staticmethod
     def mkintname(name):
@@ -233,7 +237,7 @@ class TPState(DatarefListener):
         # logger.debug(f"dataref {dataref.path} changed, setting {self.internal_name}={valstr}")
         # if self.previous_value != valstr:
         self.sim.tpclient.stateUpdate(self.internal_name, valstr)
-        loggerTPState.debug(f"state {self.name}: updated {self.previous_value} -> {valstr}")
+        loggerTPState.log(15, f"state {self.name}: updated {self.previous_value} -> {valstr}")
         self.previous_value = valstr
 
     def value(self) -> str:
@@ -244,7 +248,7 @@ class TPState(DatarefListener):
             value = self.sim.get_dataref_value(dataref_name)
             value_str = str(value) if value is not None else "0.0"
             expr = expr.replace(f"{{${dataref_name}$}}", value_str)
-        # loggerTPState.debug(f"state {self.name}: formula {self.formula} => {expr}")
+        loggerTPState.debug(f"state {self.name}: formula {self.formula} => {expr}")
         # 2. Execute the formula
         r = RPC(expr)
         value = ""
@@ -253,33 +257,36 @@ class TPState(DatarefListener):
         except:
             loggerTPState.warning(f"state {self.name}: error evaluating expression {self.formula}", exc_info=True)
             value = ""
-        # loggerTPState.debug(f"state {self.name}: {expr} => {value}")
+        loggerTPState.debug(f"state {self.name}: {expr} => {value}")
         # 3. Format
         # In Touch Portal "0" is quite different from "1.0".
         # So by forcing a "type" for Touch Portal "states", we will prevent sending "1.0" when a integer or boolean is expected.
         if value == "" or value is None:  # no value is no value...
             return ""
 
-        if self.datatype in ["int", "integer"]:
+        if self.datatype[0:3] == "int":
             try:
                 value = int(value)
                 strvalue = f"{value}"
+                if len(self.datatype) > 3 and self.datatype[3] == "0":  # zero padding "{:03d}".format(x)
+                    many = f"{{:{self.datatype[3:]}d}}"
+                    strvalue = many.format(value)
             except:
-                logger.warning(f"could not convert to datatype {self.datatype}")
+                loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}")
         elif self.datatype in ["float", "number", "decimal"]:
             try:
                 value = float(value)
                 strvalue = f"{value}"  # should format?
             except:
-                logger.warning(f"could not convert to datatype {self.datatype}")
+                loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}")
         elif self.datatype in ["bool", "boolean", "yesno"]:
             try:
                 value = value is not None and value != 0
                 strvalue = f"{value}".upper()  # TRUE or FALSE, if 0 or 1 needed, please return a int
             except:
-                logger.warning(f"could not convert to datatype {self.datatype}")
+                loggerTPState.warning(f"could not convert to datatype {self.datatype}")
         else:
-            logger.warning(f"invalid datatype {self.datatype}")
+            loggerTPState.warning(f"invalid datatype {self.datatype}")
             strvalue = ""
         # loggerTPState.debug(f"state {self.name}: formula {self.formula} => {strvalue}")
         return strvalue
@@ -631,7 +638,7 @@ class XPlane(XPlaneBeacon):
             return
         message = "CMND0" + command.path
         self.socket.sendto(message.encode(), (self.beacon_data["IP"], self.beacon_data["Port"]))
-        logger.debug(f"_execute_command: executed {command}")
+        logger.log(15, f"executed {command}")
 
     def _write_dataref(self, dataref, value, vtype="float"):
         """
@@ -657,7 +664,7 @@ class XPlane(XPlaneBeacon):
 
         assert len(message) == 509
         logger.debug(f"({self.beacon_data['IP']}, {self.beacon_data['Port']}): {path}={value} ..")
-        logger.debug(f"write_dataref: {path}={value}")
+        logger.log(15, f"writing dataref {path}={value}")
         self.socket.sendto(message, (self.beacon_data["IP"], self.beacon_data["Port"]))
         logger.debug(".. sent")
 
@@ -930,7 +937,7 @@ class XPlane(XPlaneBeacon):
             logger.debug("not running")
 
     # ################################
-    # Cockpit interface
+    # Touch Portal plugin interface
     #
     def terminate(self):
         logger.debug(f"currently {'not ' if self.no_upd_enqueue is None else ''}running. terminating..")
@@ -941,9 +948,6 @@ class XPlane(XPlaneBeacon):
         self.stop()
         logger.info("..terminated")
 
-    # ################################
-    # Touch Portal plugin interface
-    #
     def init(self):
         pages = {}
         if not os.path.exists(DYNAMIC_STATES_FILE_NAME):
@@ -954,11 +958,12 @@ class XPlane(XPlaneBeacon):
             states = json.load(fp)
             version = states.get("version")
             if version != DYNAMIC_STATES_FILE_VERSION:
-                logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version}")
+                logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
                 return
             pages = states.get("pages")
-            self.home_page = states.get("home-page")
+            self.home_page = states.get("home-page")  # warning if home page is not specified?
 
+        tot_drefs = 0
         for page in pages:
             page_name = page.get("name")
             self.pages[page_name] = {}
@@ -970,8 +975,11 @@ class XPlane(XPlaneBeacon):
                     self.states[internal_name] = TPState(name=name, config=state, sim=self)
                 # else state already created, just add datarefs to page
                 self.pages[page_name] = self.pages[page_name] | self.states[internal_name].datarefs
-            logger.debug(f"page {page_name} loaded {len(page_states)}")
+            dref_cnt = len(self.pages[page_name])
+            tot_drefs = tot_drefs + dref_cnt
+            logger.info(f"page {page_name} loaded {len(page_states)} states, {dref_cnt} datarefs")
 
+        logger.info(f"declared {len(self.states)} states, {tot_drefs} datarefs")
         self.change_page(self.home_page)
         self.connect()
 

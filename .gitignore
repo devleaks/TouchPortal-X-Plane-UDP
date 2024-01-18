@@ -152,3 +152,4 @@ cython_debug/
 #.idea/
 .DS_Store
 src/TouchPortal-X-Plane-UDP_v1.0_MacOS.tpp
+docs/.$tpxpplugin.drawio.bkp
