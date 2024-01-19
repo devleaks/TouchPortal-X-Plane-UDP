@@ -141,10 +141,9 @@ def onAction(data):
 @TPClient.on(TP.TYPES.onShutdown)
 def onShutdown(data):
     g_log.info("Received shutdown event from TP Client.")
-    if XPClient.connected:
-        g_log.info(f"Terminating XP client..")
-        XPClient.terminate()
-        g_log.info(f"..terminated")
+    g_log.info(f"Terminating XP client..")
+    XPClient.terminate()
+    g_log.info(f"..terminated")
     if TPClient.isConnected():
         g_log.info(f"Disconnecting from Touch Portal..")
         TPClient.disconnect()
@@ -254,10 +253,9 @@ def main():
         ret = -1
     finally:
         # Make sure TP Client is stopped, this will do nothing if it is already disconnected.
-        if XPClient.connected:
-            g_log.info(f"Terminating XP client..")
-            XPClient.terminate()
-            g_log.info(f"..terminated")
+        g_log.info(f"Terminating XP client..")
+        XPClient.terminate()
+        g_log.info(f"..terminated")
         if TPClient.isConnected():
             g_log.info(f"Disconnecting from Touch Portal..")
             TPClient.disconnect()

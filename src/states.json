@@ -1,53 +1,11 @@
 {
     "version": 3,
-    "home-page": "/Airbus A320/A32NX_MAIN.tml",
-    "sub-folder": "/Airbus A320",
+    "home-page": "/Airbus A321/A32NX_PEDESTAL.tml",
+    "sub-folder": "/Airbus A321",
     "pages":
     [
         {
-            "name": "/(main).tml",
-            "states":
-            [
-                {
-                    "name": "LS Captain",
-                    "formula": "{$AirbusFBW/OHPLightsATA31[28]$} 0 round",
-                    "dataref-rounding": 3,
-                    "type": "int"
-                },
-                {
-                    "name": "FD Captain",
-                    "formula": "{$AirbusFBW/OHPLightsATA31[26]$} 0 round",
-                    "dataref-rounding": 3,
-                    "type": "int"
-                },
-                {
-                    "name": "Master Warn",
-                    "formula": "{$AirbusFBW/MasterWarn$}",
-                    "dataref-rounding": 0,
-                    "type": "int"
-                },
-                {
-                    "name": "Master Caut",
-                    "formula": "{$AirbusFBW/MasterCaut$}",
-                    "dataref-rounding": 0,
-                    "type": "int"
-                },
-                {
-                    "name": "Ext. Power",
-                    "formula": "{$AirbusFBW/EnableExternalPower$}",
-                    "dataref-rounding": 0,
-                    "type": "int"
-                },
-                {
-                    "name": "Bat1",
-                    "formula": "{$AirbusFBW/BatVolts[0]$}",
-                    "dataref-rounding": 1,
-                    "type": "float"
-                }
-            ]
-        },
-        {
-            "name": "/Airbus A320/A32NX_MAIN.tml",
+            "name": "/Airbus A321/A32NX_MAIN.tml",
             "states":
             [
                 {
@@ -59,31 +17,31 @@
                 {
                     "name": "CSTR",
                     "formula": "{$AirbusFBW/OHPLightsATA31[16]$} 2 round 0 eq not",
-                    "dataref-rounding": 3,
+                    "dataref-rounding": 2,
                     "type": "int"
                 },
                 {
                     "name": "WPT",
                     "formula": "{$AirbusFBW/OHPLightsATA31[17]$} 2 round 0 eq not",
-                    "dataref-rounding": 3,
+                    "dataref-rounding": 2,
                     "type": "int"
                 },
                 {
                     "name": "VOR.D",
                     "formula": "{$AirbusFBW/OHPLightsATA31[18]$} 2 round 0 eq not",
-                    "dataref-rounding": 3,
+                    "dataref-rounding": 2,
                     "type": "int"
                 },
                 {
                     "name": "NDB",
                     "formula": "{$AirbusFBW/OHPLightsATA31[19]$} 2 round 0 eq not",
-                    "dataref-rounding": 3,
+                    "dataref-rounding": 2,
                     "type": "int"
                 },
                 {
                     "name": "ARPT",
                     "formula": "{$AirbusFBW/OHPLightsATA31[20]$} 2 round 0 eq not",
-                    "dataref-rounding": 3,
+                    "dataref-rounding": 2,
                     "type": "int"
                 },
                 {
@@ -333,23 +291,276 @@
                     "type": "int",
                     "name": "Speed brake position",
                     "dataref-rounding": 2
+                },
+                {
+                    "formula": "{$AirbusFBW/FlapLeverRatio$} 4 * 0 round",
+                    "type": "int",
+                    "name": "Flaps position",
+                    "dataref-rounding": 2
+                },
+                {
+                    "formula": "{$AirbusFBW/GearLever$}",
+                    "type": "int",
+                    "name": "Gear down"
+                },
+                {
+                    "formula": "{$AirbusFBW/NWSnAntiSkid$}",
+                    "type": "int",
+                    "name": "Anti-Skid"
+                },
+                {
+                    "formula": "{$AirbusFBW/NoseGearInd$}",
+                    "type": "int",
+                    "name": "Gear Nose"
+                },
+                {
+                    "formula": "{$AirbusFBW/LeftGearInd$}",
+                    "type": "int",
+                    "name": "Gear Left"
+                },
+                {
+                    "formula": "{$AirbusFBW/RightGearInd$}",
+                    "type": "int",
+                    "name": "Gear Right"
+                },
+                {
+                    "formula": "{$AirbusFBW/AutoBrkLo$}",
+                    "type": "int",
+                    "name": "Auto Brake Low"
+                },
+                {
+                    "formula": "{$AirbusFBW/AutoBrkMed$}",
+                    "type": "int",
+                    "name": "Auto Brake Medium"
+                },
+                {
+                    "formula": "{$AirbusFBW/AutoBrkMax$}",
+                    "type": "int",
+                    "name": "Auto Brake Max"
                 }
             ]
         },
         {
-            "name": "/Airbus A320/A32NX_OVHD_UP.tml",
+            "name": "/Airbus A321/A32NX_OVHD_UP.tml",
             "states":
-            []
+            [
+                {
+                    "name": "Pause",
+                    "formula": "{$sim/time/paused$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "formula": "{$AirbusFBW/BatVolts[0]$}",
+                    "type": "float",
+                    "name": "Battery 1",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/BatVolts[1]$}",
+                    "type": "float",
+                    "name": "Battery 2",
+                    "dataref-rounding": 1
+                }
+            ]
         },
         {
-            "name": "/Airbus A320/A32NX_OVHD_DOWN.tml",
+            "name": "/Airbus A321/A32NX_OVHD_DOWN.tml",
             "states":
-            []
+            [
+                {
+                    "name": "Pause",
+                    "formula": "{$sim/time/paused$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                }
+            ]
         },
         {
-            "name": "/Airbus A320/A32NX_PEDESTAL.tml",
+            "name": "/Airbus A321/A32NX_PEDESTAL.tml",
             "states":
-            []
+            [
+                {
+                    "name": "Pause",
+                    "formula": "{$sim/time/paused$}",
+                    "dataref-rounding": 0,
+                    "type": "int"
+                },
+                {
+                    "formula": "{$AirbusFBW/ENGN2Speed[0]$}",
+                    "type": "float",
+                    "name": "Engine N2 1",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/ENGN2Speed[1]$}",
+                    "type": "float",
+                    "name": "Engine N2 2",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/ENGEGTArray[0]$}",
+                    "type": "int",
+                    "name": "Engine EGT 1",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/ENGEGTArray[1]$}",
+                    "type": "int",
+                    "name": "Engine EGT 2",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/fmod/eng/N1Array[0]$}",
+                    "type": "float",
+                    "name": "Engine N1 1",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/fmod/eng/N1Array[1]$}",
+                    "type": "float",
+                    "name": "Engine N1 2",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/ENGFuelFlowArray[0]$} 3600 * 0 round",
+                    "type": "int",
+                    "name": "Engine FF 1",
+                    "dataref-rounding": 3
+                },
+                {
+                    "formula": "{$AirbusFBW/ENGFuelFlowArray[1]$} 3600 * 0 round",
+                    "type": "int",
+                    "name": "Engine FF 2",
+                    "dataref-rounding": 3
+                },
+                {
+                    "formula": "{$AirbusFBW/RMP1Freq$} 200 * floor 200 /",
+                    "type": "float7.3",
+                    "name": "Radio",
+                    "dataref-rounding": 4
+                },
+                {
+                    "formula": "{$AirbusFBW/RMP1StbyFreq$} 200 * floor 200 /",
+                    "type": "float7.3",
+                    "name": "Radio Stby",
+                    "dataref-rounding": 4
+                },
+                {
+                    "formula": "{$AirbusFBW/RMP1Available$}",
+                    "type": "int",
+                    "name": "RMP Available",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/RMP1SelFunc$}",
+                    "type": "int",
+                    "name": "RMP Selector",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$ckpt/radar/sys/anim$}",
+                    "type": "int",
+                    "name": "Weather Radar System",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$ckpt/fped/radar/mode/anim$}",
+                    "type": "int",
+                    "name": "Weather Radar Mode",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[30]$}",
+                    "type": "int",
+                    "name": "ECAM ENG",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[31]$}",
+                    "type": "int",
+                    "name": "ECAM BLEED",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[32]$}",
+                    "type": "int",
+                    "name": "ECAM PRESS",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[33]$}",
+                    "type": "int",
+                    "name": "ECAM ELEC",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[34]$}",
+                    "type": "int",
+                    "name": "ECAM HYD",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[35]$}",
+                    "type": "int",
+                    "name": "ECAM FUEL",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[36]$}",
+                    "type": "int",
+                    "name": "ECAM APU",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[37]$}",
+                    "type": "int",
+                    "name": "ECAM COND",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[38]$}",
+                    "type": "int",
+                    "name": "ECAM DOOR",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[39]$}",
+                    "type": "int",
+                    "name": "ECAM WHEEL",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[40]$}",
+                    "type": "int",
+                    "name": "ECAM F/CTL",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPLightsATA31[41]$}",
+                    "type": "int",
+                    "name": "ECAM STS",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/ENG1MasterSwitch$}",
+                    "type": "int",
+                    "name": "Engine Master 1",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/ENG12MasterSwitch$}",
+                    "type": "int",
+                    "name": "Engine Master 2",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/anim/ENGModeSwitch$}",
+                    "type": "int",
+                    "name": "Engine Mode",
+                    "dataref-rounding": 0
+                }
+            ]
         }
     ]
 }

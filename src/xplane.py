@@ -170,7 +170,9 @@ class Dataref:
             return False
         self._changed = self._changed + 1
         self._last_changed = datetime.now().astimezone()
-        loggerDataref.log(15, f"dataref {self.path} updated {self.previous_value} -> {self.current_value} (cascade={cascade})")
+        loggerDataref.log(
+            15, f"dataref {self.path} ({self.rounding}) updated {self.previous_value} -> {self.current_value} {'(no cascade)' if not cascade else ''}"
+        )
         if cascade:
             self.notify()
         return True
@@ -235,10 +237,10 @@ class TPState(DatarefListener):
         """Callback whenever a dataref value has changed"""
         valstr = self.value()
         # logger.debug(f"dataref {dataref.path} changed, setting {self.internal_name}={valstr}")
-        # if self.previous_value != valstr:
-        self.sim.tpclient.stateUpdate(self.internal_name, valstr)
-        loggerTPState.log(15, f"state {self.name}: updated {self.previous_value} -> {valstr}")
-        self.previous_value = valstr
+        if self.previous_value != valstr:
+            self.sim.tpclient.stateUpdate(self.internal_name, valstr)
+            loggerTPState.log(15, f"state {self.name}: updated {self.previous_value} -> {valstr}")
+            self.previous_value = valstr
 
     def value(self) -> str:
         """Compute state value based on formula and dataref values, returns an empty string on error/not avail."""
@@ -268,17 +270,20 @@ class TPState(DatarefListener):
             try:
                 value = int(value)
                 strvalue = f"{value}"
-                if len(self.datatype) > 3 and self.datatype[3] == "0":  # zero padding "{:03d}".format(x)
+                if len(self.datatype) > 3 and self.datatype[3] in ["0", " "]:  # zero padding "{:03d}".format(x)
                     many = f"{{:{self.datatype[3:]}d}}"
                     strvalue = many.format(value)
             except:
                 loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}")
-        elif self.datatype in ["float", "number", "decimal"]:
+        elif self.datatype in ["number", "decimal"] or self.datatype.startswith("float"):
             try:
                 value = float(value)
-                strvalue = f"{value}"  # should format?
+                strvalue = f"{value}"  # should format? yeah!
+                if self.datatype.startswith("float") and len(self.datatype) > len("float"):
+                    many = f"{{:{self.datatype[len('float'):]}f}}"
+                    strvalue = many.format(value)
             except:
-                loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}")
+                loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}", exc_info=True)
         elif self.datatype in ["bool", "boolean", "yesno"]:
             try:
                 value = value is not None and value != 0
