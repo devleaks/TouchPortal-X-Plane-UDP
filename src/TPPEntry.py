@@ -1,5 +1,5 @@
 # Version string of this plugin (in Python style).
-__version__ = "1.3"
+__version__ = "2.0"
 
 DYNAMIC_STATES_FILE_VERSION = 3
 

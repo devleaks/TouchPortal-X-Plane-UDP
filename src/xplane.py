@@ -1,4 +1,7 @@
-# Base classes for interface with the simulation software
+# Classes for X-Plane UDP interface.
+# Creates connection, monitors it, re-create if disconnected.
+# Execute X-Plane UDP requests (CMD0, RREF).
+# Monitors bunch of datarefs, notifies if monitored dataref value has changed.
 #
 import socket
 import struct
@@ -18,12 +21,14 @@ from abc import ABC, abstractmethod
 from rpc import RPC
 from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, DYNAMIC_STATES_FILE_VERSION
 
+from fma import FMA, FMA_BOXES
+
 loggerCommand = logging.getLogger("Command")
 # loggerCommand.setLevel(logging.DEBUG)
 
 loggerDataref = logging.getLogger("Dataref")
 # loggerDataref.setLevel(logging.DEBUG)
-loggerDataref.setLevel(15)
+# loggerDataref.setLevel(15)
 
 loggerTPState = logging.getLogger("TPState")
 # loggerTPState.setLevel(logging.DEBUG)
@@ -467,8 +472,11 @@ class XPlaneBeacon:
         logger.debug("..ended")
 
     def update_state(self, state: str, value: str):
-        logger.debug(f"updating {state} to {value}")
-        self.tpclient.stateUpdate(state, value)
+        if self.tpclient.isConnected():
+            logger.debug(f"updating {state} to {value}")
+            self.tpclient.stateUpdate(state, value)
+        else:
+            logger.warning(f"TPClient not connected")
 
     # ################################
     # Interface
@@ -556,6 +564,7 @@ class XPlane(XPlaneBeacon):
         self.no_upd_enqueue = None
 
         XPlaneBeacon.__init__(self, tpclient)
+        self.fma = FMA(tpclient=tpclient)
 
     def __del__(self):
         """Quickly ask X-Plane to no longer monitor datarefs we know"""
@@ -567,13 +576,17 @@ class XPlane(XPlaneBeacon):
     #
     # Dataref creation and registration
     #
-    def register(self, dataref):
+    def register(self, dataref) -> Dataref:
+        """Records a new dataref in the "global" dataref database"""
         if dataref.path not in self.all_datarefs:
             if dataref.path is not None:
                 self.all_datarefs[dataref.path] = dataref
         return dataref
 
-    def get_dataref(self, path):
+    def get_dataref(self, path) -> Dataref:
+        """Get an existing dataref or create and register a new one.
+        Returns the dataref.
+        """
         if path in self.all_datarefs.keys():
             return self.all_datarefs[path]
         return self.register(Dataref(path))
@@ -593,7 +606,7 @@ class XPlane(XPlaneBeacon):
     #
     # Internal X-Plnae UDP requests
     #
-    def _monitor_dataref(self, path, freq=None):
+    def _monitor_dataref(self, path, freq=None) -> bool:
         """
         Configure XPlane to send the dataref with a certain frequency.
         You can disable a dataref by setting freq to 0.
@@ -630,7 +643,7 @@ class XPlane(XPlaneBeacon):
             time.sleep(0.2)
         return True
 
-    def _execute_command(self, command: Command):
+    def _execute_command(self, command: Command) -> None:
         """Instruct X-Plane to execute a command. It only works with commandOnce command."""
         if command is None:
             logger.warning(f"no command")
@@ -677,7 +690,7 @@ class XPlane(XPlaneBeacon):
     #
     # Dataref "automatic" monitoring
     #
-    def upd_enqueue(self):
+    def upd_enqueue(self) -> None:
         """Continuously and decode socket messages and enqueue dataref values.
         Terminates after 5 timeouts.
         """
@@ -731,7 +744,7 @@ class XPlane(XPlaneBeacon):
         self.no_upd_enqueue = None
         logger.debug("..terminated")
 
-    def dataref_listener(self):
+    def dataref_listener(self) -> None:
         """Continuously read dataref values from queue, update dataref value, and determine if value has changed.
         If value has changed, provoke call to .dataref_changed() of all listeners of the updated dataref.
         """
@@ -778,9 +791,14 @@ class XPlane(XPlaneBeacon):
 
     # ################################
     #
+    # Touch Portal plugin API wrappers.
+    # These functions are called by tht Touch Portal plugin
+    # to perform actions in the X-Plane UDP.
+    #
     # Cockpit interface
     #
-    def write_dataref(self, dataref: str, value):
+    def write_dataref(self, dataref: str, value) -> None:
+        """Touch Portal plugin API wrapper"""
         vfloat = value
         if type(value) is not float:
             logger.warning(f"dataref write should only send float")
@@ -791,20 +809,24 @@ class XPlane(XPlaneBeacon):
                 return
         self._write_dataref(dataref=dataref, value=vfloat)
 
-    def commandOnce(self, command: str):
+    def commandOnce(self, command: str) -> None:
+        """Touch Portal plugin API wrapper"""
         self._execute_command(Command(path=command))
 
-    def commandBegin(self, command: str):
+    def commandBegin(self, command: str) -> None:
+        """Touch Portal plugin API wrapper"""
         self._execute_command(Command(path=command + "/begin"))
 
-    def commandEnd(self, command: str):
+    def commandEnd(self, command: str) -> None:
+        """Touch Portal plugin API wrapper"""
         self._execute_command(Command(path=command + "/end"))
 
     # ################################
     #
     # Touch Portal Interface
     #
-    def suppress_all_datarefs_monitoring(self):
+    def suppress_all_datarefs_monitoring(self) -> None:
+        """Removes monitoring of all currently monitored datarefs"""
         if not self.connected:
             logger.warning("no connection")
             return
@@ -813,7 +835,7 @@ class XPlane(XPlaneBeacon):
         logger.debug("done")
         logger.debug(f">>>>> monitoring++{len(self.datarefs)}/{self._max_monitored}")
 
-    def add_all_datarefs_to_monitor(self):
+    def add_all_datarefs_to_monitor(self) -> None:
         """Add all dataref that needs monitoring to monitor"""
         if not self.connected:
             logger.warning("no connection")
@@ -830,7 +852,7 @@ class XPlane(XPlaneBeacon):
         logger.info(f"monitoring datarefs {prnt}")
         logger.debug(f">>>>> monitoring++{len(self.datarefs_to_monitor)}/{self._max_monitored}")
 
-    def add_datarefs_to_monitor(self, datarefs):
+    def add_datarefs_to_monitor(self, datarefs) -> None:
         if not self.connected:
             logger.warning("no connection")
         # Add those to monitor
@@ -848,7 +870,7 @@ class XPlane(XPlaneBeacon):
         logger.debug(f"add_datarefs_to_monitor: added {prnt}")
         logger.debug(f">>>>> monitoring++{len(self.datarefs)}/{self._max_monitored}")
 
-    def remove_datarefs_to_monitor(self, datarefs):
+    def remove_datarefs_to_monitor(self, datarefs) -> None:
         if not self.connected and len(self.datarefs_to_monitor) > 0:
             logger.warning("no connection")
             logger.debug(f"would remove {datarefs.keys()}/{self._max_monitored}")
@@ -873,12 +895,12 @@ class XPlane(XPlaneBeacon):
         logger.debug(f"currently monitoring {self.datarefs_to_monitor}")
         logger.debug(f">>>>> monitoring--{len(self.datarefs)}/{self._max_monitored}")
 
-    def remove_all_datarefs_to_monitor(self):
+    def remove_all_datarefs_to_monitor(self) -> None:
         self.suppress_all_datarefs_monitoring()
         self.datarefs_to_monitor = {}
         logger.debug("done")
 
-    def remove_all_datarefs(self):
+    def remove_all_datarefs(self) -> None:
         if not self.connected and len(self.all_datarefs) > 0:
             logger.warning("no connection")
         logger.debug(f"removing..")
@@ -888,14 +910,14 @@ class XPlane(XPlaneBeacon):
         self.datarefs_to_monitor = {}
         logger.debug(f"..removed")
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """
         Called when before disconnecting.
         Just before disconnecting, we try to cancel dataref UDP reporting in X-Plane
         """
         self.suppress_all_datarefs_monitoring()
 
-    def start(self):
+    def start(self) -> None:
         if not self.connected:
             logger.warning("no IP address. could not start.")
             return
@@ -920,32 +942,36 @@ class XPlane(XPlaneBeacon):
         self.suppress_all_datarefs_monitoring()  # cancel previous subscriptions
         self.add_all_datarefs_to_monitor()  # add all datarefs that need monitoring
 
-    def stop(self):
+    def stop(self) -> None:
         self.suppress_all_datarefs_monitoring()  # cancel previous subscriptions
         if self.udp_queue is not None and self.dref_thread is not None:
+            logger.debug("stopping dataref listener..")
             self.udp_queue.put(XPlane.TERMINATE_QUEUE)
             self.dref_thread.join()
             self.dref_thread = None
             self.update_state(STATE_XP_DREFMON, INT_FALSE)
-            logger.debug("dataref listener stopped")
+            logger.debug("..dataref listener stopped")
         if self.no_upd_enqueue is not None:
             self.no_upd_enqueue.set()
-            logger.debug("stopping..")
+            logger.debug("stopping XPlaneUDP..")
             wait = SOCKET_TIMEOUT
-            logger.debug(f"..asked to stop dataref listener (this may last {wait} secs. for UDP socket to timeout)..")
+            logger.debug(f"..asked to stop XPlaneUDP (this may last {wait} secs. for UDP socket to timeout)..")
             self.udp_thread.join(wait)
             if self.udp_thread.is_alive():
                 logger.warning("..thread may hang in socket.recvfrom()..")
             self.no_upd_enqueue = None
-            logger.debug("..stopped")
+            logger.debug("..XPlaneUDP stopped")
         else:
             logger.debug("not running")
 
     # ################################
-    # Touch Portal plugin interface
+    # X-Plane UDP start and stop API
     #
-    def terminate(self):
-        logger.debug(f"currently {'not ' if self.no_upd_enqueue is None else ''}running. terminating..")
+    def terminate(self) -> None:
+        """Cleanly terminates XPlane UDP"""
+        logger.info("stopping FMA..")
+        self.fma.stop()
+        logger.debug(f"..XPlaneUDP currently {'not ' if self.no_upd_enqueue is None else ''}running. terminating..")
         self.remove_all_datarefs()
         logger.info("terminating..disconnecting..")
         self.disconnect()
@@ -953,7 +979,10 @@ class XPlane(XPlaneBeacon):
         self.stop()
         logger.info("..terminated")
 
-    def init(self):
+    def init(self) -> None:
+        """Initialize XPlane UDP: create dynamic Touch Portal states,
+        loads home page states and connect to X-Plane.
+        """
         pages = {}
         if not os.path.exists(DYNAMIC_STATES_FILE_NAME):
             logger.debug(f"no file {DYNAMIC_STATES_FILE_NAME}")
@@ -989,9 +1018,15 @@ class XPlane(XPlaneBeacon):
         self.connect()
 
     def change_page(self, page_name: str):
+        """Called on Touch Portal page changes.
+        Unloads currently monitored datarefs and load datarefs needed on new page.
+        Args:
+            page_name (str): Name of page being loaded. Must match the named supplied in states.json.
+        """
         if page_name in self.pages.keys():
             if self.current_page in self.pages:
                 self.remove_datarefs_to_monitor(self.pages[self.current_page])
             self.current_page = page_name
             self.add_datarefs_to_monitor(self.pages[self.current_page])
             logger.info(f"changed to page {self.current_page}")
+            self.fma.check(FMA_BOXES[0] in self.pages[self.current_page])

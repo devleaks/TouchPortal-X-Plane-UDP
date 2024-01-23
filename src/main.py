@@ -96,6 +96,9 @@ def onAction(data):
 
     if aid == TPPEntry.TP_PLUGIN_ACTIONS["ExecuteCommand"]["id"]:
         action_value = TPClient.getActionDataValue(action_data, TPPEntry.TP_PLUGIN_ACTIONS["ExecuteCommand"]["data"]["command"]["id"])
+        if action_value == "":
+            g_log.warning("Key press has no command associated")
+            return
         XPClient.commandOnce(action_value)
         g_log.debug(f"commandOnce {action_value}")
 

@@ -1,6 +1,6 @@
 {
     "version": 3,
-    "home-page": "/Airbus A321/A32NX_PEDESTAL.tml",
+    "home-page": "/Airbus A321/A32NX_MAIN.tml",
     "sub-folder": "/Airbus A321",
     "pages":
     [
@@ -337,6 +337,74 @@
                     "formula": "{$AirbusFBW/AutoBrkMax$}",
                     "type": "int",
                     "name": "Auto Brake Max"
+                },
+                {
+                    "formula": "{$AirbusFBW/FMAAPFDboxing$}",
+                    "type": "int",
+                    "name": "FMAAPFDboxing",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/FMAAPLeftArmedBox$}",
+                    "type": "int",
+                    "name": "FMAAPLeftArmedBox",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/FMAAPLeftModeBox$}",
+                    "type": "int",
+                    "name": "FMAAPLeftModeBox",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/FMAAPFDboxing$}",
+                    "type": "int",
+                    "name": "FMAAPFDboxing",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/FMAAPRightArmedBox$}",
+                    "type": "int",
+                    "name": "FMAAPRightArmedBox",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/FMAAPRightModeBox$}",
+                    "type": "int",
+                    "name": "FMAAPRightModeBox",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/FMAATHRboxing$}",
+                    "type": "int",
+                    "name": "FMAATHRboxing",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/FMATHRWarning$}",
+                    "type": "int",
+                    "name": "FMATHRWarning",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "",
+                    "name": "FMA1"
+                },
+                {
+                    "formula": "",
+                    "name": "FMA2"
+                },
+                {
+                    "formula": "",
+                    "name": "FMA3"
+                },
+                {
+                    "formula": "",
+                    "name": "FMA4"
+                },
+                {
+                    "formula": "",
+                    "name": "FMA5"
                 }
             ]
         },
@@ -559,8 +627,61 @@
                     "type": "int",
                     "name": "Engine Mode",
                     "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$sim/cockpit/radios/transponder_code$}",
+                    "type": "int04",
+                    "name": "Transponder Code",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/XPDRTCASMode$}",
+                    "type": "int",
+                    "name": "TCAS Mode",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/XPDRTCASAltSelect$}",
+                    "type": "int",
+                    "name": "TCAS Alt Select",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/XPDRSystem$}",
+                    "type": "int",
+                    "name": "XPDR System",
+                    "dataref-rounding": 0
                 }
             ]
         }
+    ],
+    "long-press-commands":
+    [
+        "AirbusFBW/FireTestAPU",
+        "AirbusFBW/FireTestENG1",
+        "AirbusFBW/FireTestENG2"
+    ],
+    "toliss-airbus-fma-datarefs":
+    [
+        "AirbusFBW/FMA1w",
+        "AirbusFBW/FMA1g",
+        "AirbusFBW/FMA1b",
+        "AirbusFBW/FMA2w",
+        "AirbusFBW/FMA2b",
+        "AirbusFBW/FMA2m",
+        "AirbusFBW/FMA3w",
+        "AirbusFBW/FMA3b",
+        "AirbusFBW/FMA3a"
+    ],
+    "toliss-airbus-fma-boxes":
+    [
+        "AirbusFBW/FMAAPFDboxing",
+        "AirbusFBW/FMAAPLeftArmedBox",
+        "AirbusFBW/FMAAPLeftModeBox",
+        "AirbusFBW/FMAAPRightArmedBox",
+        "AirbusFBW/FMAAPRightModeBox",
+        "AirbusFBW/FMAATHRModeBox",
+        "AirbusFBW/FMAATHRboxing",
+        "AirbusFBW/FMATHRWarning"
     ]
 }
