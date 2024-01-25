@@ -1,0 +1,26 @@
+{
+    "version": 3,
+    "home-page": "/X-Plane Demo.tml",
+    "pages":
+    [
+        {
+            "name": "/X-Plane Demo.tml",
+            "states":
+            [
+                {
+                    "formula": "{$sim/cockpit2/radios/actuators/com1_frequency_hz_833$} 1000 /",
+                    "type": "float",
+                    "name": "COM 1 Frequency",
+                    "dataref-rounding": 0,
+                    "comment": "Dataref is integer value, needs to be divided by 1000"
+                },
+                {
+                    "formula": "{$sim/cockpit2/radios/actuators/audio_selection_com1$}",
+                    "type": "int",
+                    "name": "Audio COM 1",
+                    "dataref-rounding": 0
+                }
+            ]
+        }
+    ]
+}

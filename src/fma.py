@@ -21,7 +21,7 @@ FMA_DATAREFS = {
     "3b": "AirbusFBW/FMA3b[:36]",
     "3a": "AirbusFBW/FMA3a[:36]",
 }
-FMA_BOXES = [
+FMA_BOXES = [  # the first dataref FMA_BOXES[0] MUST be in the states.json file
     "AirbusFBW/FMAAPFDboxing",
     "AirbusFBW/FMAAPLeftArmedBox",
     "AirbusFBW/FMAAPLeftModeBox",
@@ -47,10 +47,10 @@ ANY = "0.0.0.0"
 FMA_MCAST_PORT = 49505
 FMA_UPDATE_FREQ = 2.0
 FMA_MCAST_GRP = "239.255.1.1"
-FMA_SOCKET_TIMEOUT = 5
+FMA_SOCKET_TIMEOUT = 10
 
 loggerFMA = logging.getLogger("FMA")
-loggerFMA.setLevel(logging.DEBUG)
+# loggerFMA.setLevel(logging.DEBUG)
 # loggerFMA.setLevel(15)
 
 
@@ -75,6 +75,7 @@ class FMA:
         self.previous_text = {}
         self.fma_lines = [[] for i in range(FMA_COUNT)]
         self.previous_fma_lines = [[] for i in range(FMA_COUNT)]
+        self.FMA_BOXES = FMA_BOXES
 
     def reader(self):
         loggerFMA.debug("starting FMA collector..")
@@ -92,13 +93,14 @@ class FMA:
                 delta = now - last_read_ts
                 total_read_time = total_read_time + delta.microseconds / 1000000
                 last_read_ts = now
-
-            except:
-                loggerFMA.info(f"FMA collector: socket timeout received ({total_to})", exc_info=True)
+            except socket.error as e:
+                total_to = total_to + 1
+                if total_to < 6 or total_to % int(120 / FMA_SOCKET_TIMEOUT) == 0:  # every two minutes (120s)
+                    loggerFMA.info(f"FMA collector: socket timeout received ({total_to} at {datetime.now().strftime('%H:%M:%S')})")
             else:
+                ts = 0
                 with self.fma_text_lock:
                     data = json.loads(data.decode("utf-8"))
-                    ts = 0
                     if "ts" in data:
                         ts = data["ts"]
                         del data["ts"]
@@ -109,14 +111,18 @@ class FMA:
 
     def writer(self):
         loggerFMA.debug("starting FMA updater..")
-        total_to = 0
-        total_reads = 0
-        total_values = 0
-        last_read_ts = datetime.now()
-        total_read_time = 0.0
+        # total_to = 0
+        # total_reads = 0
+        # total_values = 0
+        # last_read_ts = datetime.now()
+        # total_read_time = 0.0
         while not self.update_fma.is_set():
-            if self.text != self.previous_text:  # with self.fma_text_lock
-                self.update_all_fma_lines()
+            updated = False
+            with self.fma_text_lock:
+                if self.text != self.previous_text:  #
+                    self.update_all_fma_lines()
+                    updated = True
+            if updated:
                 for i in range(FMA_COUNT):
                     if self.previous_fma_lines[i] != self.fma_lines[i]:
                         self.update_fma_text(i)
@@ -133,7 +139,7 @@ class FMA:
         return self.collect_fma is not None
 
     def check(self, must_run: bool):
-        loggerFMA.debug(f"check {must_run}, {self.is_running()}")
+        # loggerFMA.debug(f"check {must_run}, {self.is_running()}")
         if must_run and not self.is_running():
             self.start()
             return
@@ -179,9 +185,8 @@ class FMA:
         if self.collect_fma is not None:
             self.collect_fma.set()
             loggerFMA.debug("stopping FMA collector..")
-            wait = FMA_SOCKET_TIMEOUT
-            loggerFMA.debug(f"..asked to stop FMA collector (this may last {wait} secs. for UDP socket to timeout)..")
-            self.fma_thread.join(wait)
+            loggerFMA.debug(f"..asked to stop FMA collector (this may last {FMA_SOCKET_TIMEOUT} secs. for UDP socket to timeout)..")
+            self.fma_thread.join(FMA_SOCKET_TIMEOUT)
             if self.fma_thread.is_alive():
                 loggerFMA.warning("..thread may hang in socket.recvfrom()..")
             self.collect_fma = None

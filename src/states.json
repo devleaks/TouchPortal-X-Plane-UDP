@@ -1,5 +1,5 @@
 {
-    "version": 3,
+    "version": 4,
     "home-page": "/Airbus A321/A32NX_MAIN.tml",
     "sub-folder": "/Airbus A321",
     "pages":
@@ -108,7 +108,7 @@
                     "name": "Baro Value HG",
                     "formula": "{$sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot$}",
                     "dataref-rounding": 2,
-                    "type": "float"
+                    "type": "float5.2"
                 },
                 {
                     "name": "Baro Value hPa",
@@ -387,6 +387,18 @@
                     "dataref-rounding": 0
                 },
                 {
+                    "formula": "{$AirbusFBW/throttle_input[0]$}",
+                    "type": "float",
+                    "name": "Engine 1 Throttle",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/throttle_input[1]$}",
+                    "type": "float",
+                    "name": "Engine 2 Throttle",
+                    "dataref-rounding": 1
+                },
+                {
                     "formula": "",
                     "name": "FMA1"
                 },
@@ -428,6 +440,24 @@
                     "formula": "{$AirbusFBW/BatVolts[1]$}",
                     "type": "float",
                     "name": "Battery 2",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/FireAgentSwitchAnim[10]$} ceil",
+                    "type": "int",
+                    "name": "Engine 1 Fire Alert",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/OHPGuardsAllATA[17]$} ceil",
+                    "type": "int",
+                    "name": "Engine 1 Fire Guard",
+                    "dataref-rounding": 1
+                },
+                {
+                    "formula": "{$AirbusFBW/ENGFireSwitchArray[0]$} ceil",
+                    "type": "int",
+                    "name": "Engine 1 Fire",
                     "dataref-rounding": 1
                 }
             ]
@@ -539,76 +569,76 @@
                     "dataref-rounding": 0
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[30]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[30]$} ceil",
                     "type": "int",
                     "name": "ECAM ENG",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[31]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[31]$} ceil",
                     "type": "int",
                     "name": "ECAM BLEED",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[32]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[32]$} ceil",
                     "type": "int",
                     "name": "ECAM PRESS",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[33]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[33]$} ceil",
                     "type": "int",
                     "name": "ECAM ELEC",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[34]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[34]$} ceil",
                     "type": "int",
                     "name": "ECAM HYD",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[35]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[35]$} ceil",
                     "type": "int",
                     "name": "ECAM FUEL",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[36]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[36]$} ceil",
                     "type": "int",
                     "name": "ECAM APU",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[37]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[37]$} ceil",
                     "type": "int",
                     "name": "ECAM COND",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[38]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[38]$} ceil",
                     "type": "int",
                     "name": "ECAM DOOR",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[39]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[39]$} ceil",
                     "type": "int",
                     "name": "ECAM WHEEL",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[40]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[40]$} ceil",
                     "type": "int",
                     "name": "ECAM F/CTL",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
-                    "formula": "{$AirbusFBW/OHPLightsATA31[41]$}",
+                    "formula": "{$AirbusFBW/OHPLightsATA31[41]$} ceil",
                     "type": "int",
                     "name": "ECAM STS",
-                    "dataref-rounding": 0
+                    "dataref-rounding": 2
                 },
                 {
                     "formula": "{$AirbusFBW/ENG1MasterSwitch$}",
@@ -637,19 +667,25 @@
                 {
                     "formula": "{$AirbusFBW/XPDRTCASMode$}",
                     "type": "int",
-                    "name": "TCAS Mode",
-                    "dataref-rounding": 0
-                },
-                {
-                    "formula": "{$AirbusFBW/XPDRTCASAltSelect$}",
-                    "type": "int",
-                    "name": "TCAS Alt Select",
+                    "name": "XPDR TCAS Mode",
                     "dataref-rounding": 0
                 },
                 {
                     "formula": "{$AirbusFBW/XPDRSystem$}",
                     "type": "int",
                     "name": "XPDR System",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/XPDRTCASAltSelect$}",
+                    "type": "int",
+                    "name": "XPDR TCAS Alt Select",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$AirbusFBW/XPDRPower$}",
+                    "type": "int",
+                    "name": "XPDR Power",
                     "dataref-rounding": 0
                 }
             ]

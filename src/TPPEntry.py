@@ -1,7 +1,10 @@
 # Version string of this plugin (in Python style).
-__version__ = "2.0"
+__version__ = "2.2"
 
-DYNAMIC_STATES_FILE_VERSION = 3
+DYNAMIC_STATES_SETTING = "Dynamic States File"
+DYNAMIC_STATES_FILE_NAME = "states.json"
+DYNAMIC_STATES_FILE_VERSION = 4
+RELOAD_STATES_FILE_COMMAND = "RELOAD_STATES_FILE"
 
 
 def dotkey(*a):
@@ -36,12 +39,12 @@ TP_PLUGIN_INFO = {
 # Setting(s) for this plugin. These could be either for users to
 # set, or to persist data between plugin runs (as read-only settings).
 TP_PLUGIN_SETTINGS = {
-    "Dynamic States File": {
-        "name": "Dynamic States File",
+    DYNAMIC_STATES_SETTING: {
+        "name": DYNAMIC_STATES_SETTING,
         # "text" is the default type and could be omitted here
         "type": "text",
-        "default": "states.json",
-        "readOnly": True,  # this is also the default
+        "default": DYNAMIC_STATES_FILE_NAME,
+        "readOnly": False,  # this is also the default
         "doc": "File containing TP states to X-Plane dataref mappings",
         "value": None,  # we can optionally use the settings struct to hold the current value
     }

@@ -54,6 +54,12 @@ def handleSettings(settings, on_connect=False):
     # to:
     #   { "Setting 1" : "value", "Setting 2" : "value" }
     settings = {list(settings[i])[0]: list(settings[i].values())[0] for i in range(len(settings))}
+    if TPClient is not None and XPClient is not None:
+        states_fn = settings.get(TPPEntry.DYNAMIC_STATES_SETTING, TPPEntry.DYNAMIC_STATES_FILE_NAME)
+        g_log.info(f"loading settings file {states_fn}")
+        # g_log.info("reloading states  file")
+        # XPClient.reinit(states_fn)
+
     # now we can just get settings, and their values, by name
     # if (value := settings.get(TPPEntry.TP_PLUGIN_SETTINGS["example"]["name"])) is not None:
     #     # this example doesn't do anything useful with the setting, just saves it
@@ -98,6 +104,10 @@ def onAction(data):
         action_value = TPClient.getActionDataValue(action_data, TPPEntry.TP_PLUGIN_ACTIONS["ExecuteCommand"]["data"]["command"]["id"])
         if action_value == "":
             g_log.warning("Key press has no command associated")
+            return
+        if action_value == TPPEntry.RELOAD_STATES_FILE_COMMAND:  # hack, trick, special keyword for developments
+            g_log.info("reloading states  file")
+            XPClient.reinit()
             return
         XPClient.commandOnce(action_value)
         g_log.debug(f"commandOnce {action_value}")

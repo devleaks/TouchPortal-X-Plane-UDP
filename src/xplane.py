@@ -19,16 +19,14 @@ from queue import Queue
 from abc import ABC, abstractmethod
 
 from rpc import RPC
-from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, DYNAMIC_STATES_FILE_VERSION
-
-from fma import FMA, FMA_BOXES
+from TPPEntry import PLUGIN_ID, TP_PLUGIN_STATES, DYNAMIC_STATES_FILE_NAME, DYNAMIC_STATES_FILE_VERSION
 
 loggerCommand = logging.getLogger("Command")
 # loggerCommand.setLevel(logging.DEBUG)
 
 loggerDataref = logging.getLogger("Dataref")
 # loggerDataref.setLevel(logging.DEBUG)
-# loggerDataref.setLevel(15)
+loggerDataref.setLevel(15)
 
 loggerTPState = logging.getLogger("TPState")
 # loggerTPState.setLevel(logging.DEBUG)
@@ -57,10 +55,10 @@ RECONNECT_TIMEOUT = 10  # seconds, when disconnceted, retries every RECONNECT_TI
 STATE_XP_CONNECTED = TP_PLUGIN_STATES["XPlaneConnected"]["id"]
 STATE_XP_CONNMON = TP_PLUGIN_STATES["ConnectionMonitoringRunning"]["id"]
 STATE_XP_DREFMON = TP_PLUGIN_STATES["MonitoringRunning"]["id"]
+# STATE_XP_CURRPAGE = TP_PLUGIN_STATES["CurrentPage"]["id"]
 
 # Touch Portal dynamic states
 # See TPPEntry.DYNAMIC_STATES_FILE_VERSION
-DYNAMIC_STATES_FILE_NAME = "states.json"
 PATTERN_DOLCB = "{\\$([^\\}]+?)\\$}"  # {$ ... $}: Touch portal variable in formula syntax.
 
 # Dynamic state values: note: Dynamic state values are always strings, sometimes confined to a valid list of values.
@@ -224,6 +222,11 @@ class TPState(DatarefListener):
             dref.add_listener(self)
             self.datarefs[d] = dref
         loggerTPState.log(15, f"state {self.name}: created {self.internal_name}, uses datarefs {', '.join(self.datarefs.keys())}")
+
+    def __del__(self):
+        """Remove from TP instance"""
+        if self.sim.tpclient.isConnected():
+            self.sim.tpclient.removeState(stateId=self.internal_name)
 
     @staticmethod
     def mkintname(name):
@@ -547,8 +550,8 @@ class XPlane(XPlaneBeacon):
         self.datarefidx = 0  # working variable, last index
         self.datarefs = {}  # key = idx, value = dataref path { 25: "sim/time/seconds" }, in UDP packet we receive '25=67545', thus sim/time/seconds=67545.
 
-        self.states = {}  # {state_name: TPState}
-        self.pages = {}  # {page_name: dict({path: dataref})}
+        self.states = {}  # {state_internal_name: TPState}
+        self.pages = {}  # {page_name: {dref-path: Dataref}}
         self.home_page = None
         self.current_page = "main"
 
@@ -564,7 +567,13 @@ class XPlane(XPlaneBeacon):
         self.no_upd_enqueue = None
 
         XPlaneBeacon.__init__(self, tpclient)
-        self.fma = FMA(tpclient=tpclient)
+        self.fma = None
+        try:
+            from fma import FMA
+
+            self.fma = FMA(tpclient=tpclient)
+        except:
+            logger.warning(f"no Toliss Airbus FMA reader")
 
     def __del__(self):
         """Quickly ask X-Plane to no longer monitor datarefs we know"""
@@ -869,6 +878,7 @@ class XPlane(XPlaneBeacon):
                 self.datarefs_to_monitor[d.path] = self.datarefs_to_monitor[d.path] + 1
         logger.debug(f"add_datarefs_to_monitor: added {prnt}")
         logger.debug(f">>>>> monitoring++{len(self.datarefs)}/{self._max_monitored}")
+        # logger.info(f"monitoring datarefs {prnt}")
 
     def remove_datarefs_to_monitor(self, datarefs) -> None:
         if not self.connected and len(self.datarefs_to_monitor) > 0:
@@ -970,7 +980,8 @@ class XPlane(XPlaneBeacon):
     def terminate(self) -> None:
         """Cleanly terminates XPlane UDP"""
         logger.info("stopping FMA..")
-        self.fma.stop()
+        if self.fma is not None:
+            self.fma.stop()
         logger.debug(f"..XPlaneUDP currently {'not ' if self.no_upd_enqueue is None else ''}running. terminating..")
         self.remove_all_datarefs()
         logger.info("terminating..disconnecting..")
@@ -1017,6 +1028,33 @@ class XPlane(XPlaneBeacon):
         self.change_page(self.home_page)
         self.connect()
 
+    def reinit(self):
+        # Test if states.json file ok
+        try:
+            if not os.path.exists(DYNAMIC_STATES_FILE_NAME):
+                logger.debug(f"no file {DYNAMIC_STATES_FILE_NAME}")
+                return
+
+            with open(DYNAMIC_STATES_FILE_NAME, "r") as fp:
+                states = json.load(fp)
+                version = states.get("version")
+                if version != DYNAMIC_STATES_FILE_VERSION:
+                    logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
+                    return
+        except:
+            logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} is invalid, states not reloaded", exc_info=True)
+            return
+        # Unload existing states
+        if self.current_page in self.pages:
+            self.remove_datarefs_to_monitor(self.pages[self.current_page])
+        # reset plugin
+        self.pages = {}
+        # delete existing states
+        for state in self.states.values():
+            del state
+        # load states file again
+        self.init()
+
     def change_page(self, page_name: str):
         """Called on Touch Portal page changes.
         Unloads currently monitored datarefs and load datarefs needed on new page.
@@ -1029,4 +1067,5 @@ class XPlane(XPlaneBeacon):
             self.current_page = page_name
             self.add_datarefs_to_monitor(self.pages[self.current_page])
             logger.info(f"changed to page {self.current_page}")
-            self.fma.check(FMA_BOXES[0] in self.pages[self.current_page])
+            if self.fma is not None:
+                self.fma.check(self.fma.FMA_BOXES[0] in self.pages[self.current_page])
