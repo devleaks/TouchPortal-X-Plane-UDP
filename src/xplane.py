@@ -26,16 +26,15 @@ loggerCommand = logging.getLogger("Command")
 
 loggerDataref = logging.getLogger("Dataref")
 # loggerDataref.setLevel(logging.DEBUG)
-loggerDataref.setLevel(15)
+# loggerDataref.setLevel(15)
 
 loggerTPState = logging.getLogger("TPState")
 # loggerTPState.setLevel(logging.DEBUG)
-loggerTPState.setLevel(15)
+# loggerTPState.setLevel(15)
 
 logger = logging.getLogger("XPlane")
 # logger.setLevel(logging.DEBUG)
-logger.setLevel(15)
-
+# logger.setLevel(15)
 
 # ########################################
 # Global constant
@@ -261,12 +260,12 @@ class TPState(DatarefListener):
         loggerTPState.debug(f"state {self.name}: formula {self.formula} => {expr}")
         # 2. Execute the formula
         r = RPC(expr)
-        value = ""
+        value = 0.0
         try:
             value = r.calculate()
-        except:
+        except ValueError:
             loggerTPState.warning(f"state {self.name}: error evaluating expression {self.formula}", exc_info=True)
-            value = ""
+            value = 0.0
         loggerTPState.debug(f"state {self.name}: {expr} => {value}")
         # 3. Format
         # In Touch Portal "0" is quite different from "1.0".
@@ -274,33 +273,33 @@ class TPState(DatarefListener):
         if value == "" or value is None:  # no value is no value...
             return ""
 
+        strvalue = ""
         if self.datatype[0:3] == "int":
             try:
-                value = int(value)
+                value = int(value)  # int vs round? ceil? floor?
                 strvalue = f"{value}"
-                if len(self.datatype) > 3 and self.datatype[3] in ["0", " "]:  # zero padding "{:03d}".format(x)
-                    many = f"{{:{self.datatype[3:]}d}}"
-                    strvalue = many.format(value)
-            except:
-                loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}")
+                if len(self.datatype) > len("int"):
+                    fmt = f"{{:{self.datatype[3:]}d}}"
+                    strvalue = fmt.format(value)
+            except ValueError:
+                loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}", exc_info=True)
         elif self.datatype in ["number", "decimal"] or self.datatype.startswith("float"):
             try:
                 value = float(value)
                 strvalue = f"{value}"  # should format? yeah!
                 if self.datatype.startswith("float") and len(self.datatype) > len("float"):
-                    many = f"{{:{self.datatype[len('float'):]}f}}"
-                    strvalue = many.format(value)
-            except:
+                    fmt = f"{{:{self.datatype[len('float'):]}f}}"
+                    strvalue = fmt.format(value)
+            except ValueError:
                 loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}", exc_info=True)
         elif self.datatype in ["bool", "boolean", "yesno"]:
             try:
                 value = value is not None and value != 0
                 strvalue = f"{value}".upper()  # TRUE or FALSE, if 0 or 1 needed, please return a int
-            except:
-                loggerTPState.warning(f"could not convert to datatype {self.datatype}")
+            except ValueError:
+                loggerTPState.warning(f"could not convert to datatype {self.datatype}", exc_info=True)
         else:
             loggerTPState.warning(f"invalid datatype {self.datatype}")
-            strvalue = ""
         # loggerTPState.debug(f"state {self.name}: formula {self.formula} => {strvalue}")
         return strvalue
 
@@ -360,7 +359,7 @@ class XPlaneBeacon:
         # open socket for multicast group.
         # this socker is for getting the beacon, it can be closed when beacon is found.
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # SO_REUSEPORT?
         if platform.system() == "Windows":
             sock.bind(("", self.MCAST_PORT))
         else:
@@ -914,7 +913,7 @@ class XPlane(XPlaneBeacon):
         if not self.connected and len(self.all_datarefs) > 0:
             logger.warning("no connection")
         logger.debug(f"removing..")
-        datarefs = dict([(d, self.all_datarefs[d]) for d in self.datarefs_to_monitor.keys()])
+        datarefs = {d: self.all_datarefs[d] for d in self.datarefs_to_monitor.keys()}
         self.remove_datarefs_to_monitor(datarefs)
         self.all_datarefs = {}
         self.datarefs_to_monitor = {}
@@ -979,8 +978,8 @@ class XPlane(XPlaneBeacon):
     #
     def terminate(self) -> None:
         """Cleanly terminates XPlane UDP"""
-        logger.info("stopping FMA..")
         if self.fma is not None:
+            logger.info("stopping FMA..")
             self.fma.stop()
         logger.debug(f"..XPlaneUDP currently {'not ' if self.no_upd_enqueue is None else ''}running. terminating..")
         self.remove_all_datarefs()

@@ -14,7 +14,7 @@ This API has shortcomings but is mostly sufficent to create appealing cockpit an
 
 For other design operations, Touch Portal creators will use Touch Portal tools to create cockpits and dashboards.
 
-# Important Restriction
+## Important Restriction
 
 As currently implemented, the plugin only accepts a single connected client to the Touch Portal server application.
 
@@ -42,7 +42,7 @@ The above JSON fragment dynamically creates a Touch Portal state named "Pause".
 The formula establishes the link between the X-Plane dataref value(s)
 (always a float when fetched through X-Plane UDP API)
 and the value of the Touch Portal state.
-The formula use reverse polish notation (RPN).
+The formula uses reverse polish notation (RPN).
 The formula potentially combines several datarefs into a single state value.
 
 Using RPN, the formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +`.
@@ -72,7 +72,7 @@ The above declaration will create a Touch Portal state named `Pressure in hPa` a
 will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` multiplied by 33.6839 and rounded.
 
 If present, the optional `dataref-rounding` is a parameter that rounds the raw dataref value as it is received
-before it is substitued in the formula.
+from X-Plane before it is substitued in the formula.
 
 It prevents rapidly (and often isignificantly) fluctuating datarefs to provoque too frequent state value change.
 
@@ -93,6 +93,8 @@ However, internally, it will only be created once.
 
 Declarations all need to be created first before the creator of a page with buttons
 can access them in Touch Portal application.
+
+# Touch Portal Actions
 
 ## X-Plane Commands
 
