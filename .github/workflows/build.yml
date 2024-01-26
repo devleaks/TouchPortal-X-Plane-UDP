@@ -35,3 +35,4 @@ jobs:
           file: ./src/*.tpp
           overwrite: true
           file_glob: true
+          tag: ${{ github.ref }}
