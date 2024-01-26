@@ -1,5 +1,5 @@
 # Version string of this plugin (in Python style).
-__version__ = "2.3"
+__version__ = "2.4"
 
 DYNAMIC_STATES_SETTING = "Dynamic States File"
 DYNAMIC_STATES_FILE_NAME = "states.json"
@@ -27,12 +27,15 @@ TP_PLUGIN_INFO = {
     "name": "Touch Portal X-Plane UDP Plugin",
     "id": PLUGIN_ID,
     # Startup command, with default logging options read from configuration file (see main() for details)
-    "plugin_start_cmd": "%TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP\\, @plugin_config.txt",
+    "plugin_start_cmd": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP/start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
+    "plugin_start_cmd_mac": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP//start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
+    "plugin_start_cmd_linux": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP//start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
+    "plugin_start_cmd_windows": "%TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP\\TouchPortal-X-Plane-UDP.exe",
     "configuration": {"colorDark": "#25274c", "colorLight": "#707ab5"},
     "doc": {
         "repository": "devleaks:TouchPortal-X-Plane-UDP",
         "Install": "Please refer to the README file",
-        "description": "Touch Portal to X-Plane UDP Plugin Adaptator",
+        "description": "Touch Portal to X-Plane UDP Plugin Adaptor",
     },
 }
 

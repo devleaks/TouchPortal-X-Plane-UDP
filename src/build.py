@@ -57,7 +57,7 @@ with open(entry, "r") as f:
 """
 If you have any required file(s) that your plugin needs, put them in this list.
 """
-ADDITIONAL_FILES = ["states.json"]
+ADDITIONAL_FILES = ["plugin_config.txt", TPPEntry.DYNAMIC_STATES_FILE_NAME]
 
 """
 start.sh file is not needed for Windows machine. as it can execute the exe itself where as

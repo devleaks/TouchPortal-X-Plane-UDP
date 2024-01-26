@@ -13,4 +13,4 @@ then
     sleep 1
 fi
 
-./$prog
+./$prog $2
