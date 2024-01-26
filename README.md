@@ -1,3 +1,6 @@
+[![build](https://github.com/devleaks/TouchPortal-X-Plane-UDP/actions/workflows/build.yml/badge.svg)](https://github.com/devleaks/TouchPortal-X-Plane-UDP/actions/workflows/build.yml)
+
+
 # Touch Portal X-Plane UDP Plugin
 
 Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that aims are providing minimal hooks
