@@ -1,37 +1,54 @@
 # Creates pair of commandBegin/commandEnd for some commands.
 # New commands for "command" are "command/begin" and "command/end".
 #
+# Changelog:
+#
+# 22-JAN-2024: 1.0.0: Initial release.
+#
+#
+# Usage note:
+#
+# Copy this file and the file states.json into
+# <X-Plane 12 Folder>/Resources/Plugins/PythonPlugings
+# Reload python scripts or restart X-Plane.
+#
+# Make sure all commands you want to have begin/end versions
+# are in an element like so in file states.json:
+# "long-press-commands": [
+#     "AirbusFBW/FireTestAPU",
+#     "AirbusFBW/FireTestENG1",
+#     "AirbusFBW/FireTestENG2"
+# ]
+#
+# The above will create the following "commandOnce":
+#
+# AirbusFBW/FireTestAPU/begin, AirbusFBW/FireTestAPU/end, etc.
+#
 import os
 import json
 import xp
 from traceback import print_exc
 
+RELEASE = "1.0.0"
+
 CONFIG_DIR = "."
 CONFIG_FILE = "states.json"
 LONG_PRESS_COMMANDS = "long-press-commands"
-DYNAMIC_STATES_FILE_VERSION = 3
+DYNAMIC_STATES_FILE_VERSION = 4
 
 REF = "cmdref"
 FUN = "cmdfun"
 HDL = "cmdhdl"
 
 
-RELEASE = "1.0.0"  # local version number
-
-# Changelog:
-#
-# 22-JAN-2024: 1.0.0: Initial release.
-#
-
-
 class PythonInterface:
     def __init__(self):
-        self.Name = "Cockpitdecks Helper"
+        self.Name = "Touch Portal Command Helper"
         self.Sig = "xppython3.tpxphelper"
         self.Desc = f"Decompose long press commands into command/begin and command/end. (Rel. {RELEASE})"
         self.Info = self.Name + f" (rel. {RELEASE})"
         self.enabled = False
-        self.trace = True  # produces extra print/debugging in XPPython3.log for this class
+        self.trace = False  # produces extra print/debugging in XPPython3.log for this class
         self.commands = {}
 
     def XPluginStart(self):
@@ -114,7 +131,7 @@ class PythonInterface:
             config = json.load(config_fp)
             version = config.get("version")
             if version != DYNAMIC_STATES_FILE_VERSION:
-                print(self.Info, f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
+                print(self.Info, f"states file {CONFIG_FILE} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
                 return
             if DEBUG:
                 print(self.Info, f"PI::load: loaded file '{config_fn}'")
