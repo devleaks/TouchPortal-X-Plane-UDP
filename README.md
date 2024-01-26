@@ -14,40 +14,73 @@ This API has shortcomings but is mostly sufficent to create appealing cockpit an
 
 For other design operations, Touch Portal creators will use Touch Portal tools to create cockpits and dashboards.
 
+# Important Restriction
+
+As currently implemented, the plugin only accepts a single connected client to the Touch Portal server application.
+
+If several users request to lift this restriction, we will consider it
+with the warnings and impacts on X-Plane performances (frame rate).
 
 ## X-Plane Datarefs and Touch Portal States
 
 To bridge X-Plane Datarefs and Touch Portal States, the plugin uses a simple,
 single definition file that establish the link between both.
-A link is declared as such
 
-"Touch Portal State Name" = "Expression containing datarefs"
+A link is declared by a small JSON definition like so:
 
-Touch Portal uses the following conventions.
+```
+    {
+        "name": "Pause",
+        "formula": "{$sim/time/paused$}",
+        "dataref-rounding": 0,
+        "type": "int"
+    }
+```
 
- 1. A variable named `variable-name` is accessed by the the syntax {$variable-name$}.
+The formula establishes the link between the X-Plane dataref value (always a float when fetched through X-Plane UDP API)
+and the Touch Portal state value:
 
- 2. Expressions combining several variables use reverse polish notation (RPN):
+The formula is an expressions potentially combining several datarefs use reverse polish notation (RPN):
+
     The formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +` in RPN.
 
-To avoid bringing new confusing syntax, the Touch Portal X-Plane UDL Plugin uses the same convention.
-The Expression containing datarefs will use similar convention.
-In an expression, a dataref will be referenced `{$dataref/path/in/simulator$}`.
-The expression itself will use RPN.
+To avoid bringing new confusing syntax, the Touch Portal X-Plane UDP Plugin uses the same convention.
+The formula containing datarefs will use similar convention.
+In a formula, a dataref will be referenced `{$dataref/path/in/simulator$}`.
 
-For exemple, if the dataref `` gives the barometric pressure in inches of mercury,
+For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` gives the barometric pressure in inches of mercury,
 the following formula convert the pressure in hecto-Pascal (and round it with 0 decimal):
 ```
-"Pressure in hPa" = "{$sim/cockpit/misc/barometer_setting$} 33.8639 * 0 round"
+    {
+        "name": "Pressure in hPa",
+        "formula": "{$sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot$} 33.8639 * 0 round",
+        "dataref-rounding": 3,
+        "type": "int"
+    }
 ```
 
 Please recall that following the X-Plane UDP protocol, all dataref values returned by the simulator
 are `float` numbers.
 
 The above declaration will create a Touch Portal state named `Pressure in hPa` and its value
-will reflect the value of the `sim/cockpit/misc/barometer_setting` multiplied by 33.6839 and rounded.
+will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` multiplied by 33.6839 and rounded.
 
-All declarations are in the file `states.json` in a JSON-formatted file.
+If present, the optional `dataref-rounding` is a parameter that rounds the raw dataref value as it is received.
+It prevents rapidly fluctuating parameters to provoque state value change too frequently.
+
+The `type` attribute determine the type of the Touch Portal state value.
+To ease interaction with Touch Portal server, all state values are converted to strings
+before being set. In Touch Portal expression string `"1"` is not equal to number value `1`.
+
+
+[All declarations are in the file](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.md)
+`states.json` in a JSON-formatted file.
+The states in that files are grouped into pages.
+When a page is loaded in the Touch Portal client, the states that drive that page
+are loaded and monitored. Other states are temporarily not monitored.
+
+If the same state appears in several pages, it must be repeated in each page.
+However, internally, it will only be created once.
 
 Declarations all need to be created first before the creator of a page with buttons
 can access them in Touch Portal application.
@@ -62,6 +95,15 @@ and supplies the command to execute like `sim/map/show_toggle`.
 To change the value of a dataref in the simulator, the creator can use the `Set dataref value` action.
 The action will need the dataref that need to be set and the value.
 
+Recall that X-Plane UDP protocol will always convert the value to float.
+
+You can only set one value at a time. Not an list or array of values.
+To set a value in an array, simply supply its index in the dataref.
+
+```
+set-dataref-value AirbusFBW/throttle_input[0] 0.7
+```
+
 ## X-Plane Long Press Command
 
 To execute a long press command in X-Plane, the Touch Portal creator uses the Execute Long Press X-Plane Command action
@@ -70,5 +112,8 @@ and supplies the command to execute.
 The execution of Long Press command requires a XPPython3 plugin to execute these commands
 to circumvent a X-Plane UDP API shortcoming.
 
+The XPPYthon3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
+in XPPYthon3 plugin script folder.
 
-Last updated 14-JAN-2024
+
+Last updated 26-JAN-2024

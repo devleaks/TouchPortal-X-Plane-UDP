@@ -1,7 +1,10 @@
 # Notes on Reverse Polish Notation
 
-The following functions are available in RPN:
+All values on the RPN stack are float value or functions.
+Integer values are converted to float.
+Non float values are assumed to be functions.
 
+The following functions are available in RPN:
 
   - Mathematical operations: +, -, x, /.
   - Modulo (% operator in Python)
