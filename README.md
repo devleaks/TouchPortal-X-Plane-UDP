@@ -37,18 +37,24 @@ A link is declared by a small JSON definition like so:
     }
 ```
 
-The formula establishes the link between the X-Plane dataref value (always a float when fetched through X-Plane UDP API)
-and the Touch Portal state value:
+The above JSON fragment dynamically creates a Touch Portal state named "Pause".
 
-The formula is an expressions potentially combining several datarefs use reverse polish notation (RPN):
+The formula establishes the link between the X-Plane dataref value(s)
+(always a float when fetched through X-Plane UDP API)
+and the value of the Touch Portal state.
+The formula use reverse polish notation (RPN).
+The formula potentially combines several datarefs into a single state value.
 
-    The formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +` in RPN.
+Using RPN, the formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +`.
 
-To avoid bringing new confusing syntax, the Touch Portal X-Plane UDP Plugin uses the same convention.
+To avoid bringing new confusing syntax, the Touch Portal X-Plane UDP Plugin uses the same convention
+as the Touch Portal server application: It uses RPN, and variables are isolated in framing `{$` and `$}`.
+
 The formula containing datarefs will use similar convention.
 In a formula, a dataref will be referenced `{$dataref/path/in/simulator$}`.
 
-For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` gives the barometric pressure in inches of mercury,
+For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot`
+gives the barometric pressure in inches of mercury,
 the following formula convert the pressure in hecto-Pascal (and round it with 0 decimal):
 ```
     {
@@ -65,12 +71,15 @@ are `float` numbers.
 The above declaration will create a Touch Portal state named `Pressure in hPa` and its value
 will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` multiplied by 33.6839 and rounded.
 
-If present, the optional `dataref-rounding` is a parameter that rounds the raw dataref value as it is received.
-It prevents rapidly fluctuating parameters to provoque state value change too frequently.
+If present, the optional `dataref-rounding` is a parameter that rounds the raw dataref value as it is received
+before it is substitued in the formula.
+
+It prevents rapidly (and often isignificantly) fluctuating datarefs to provoque too frequent state value change.
 
 The `type` attribute determine the type of the Touch Portal state value.
 To ease interaction with Touch Portal server, all state values are converted to strings
-before being set. In Touch Portal expression string `"1"` is not equal to number value `1`.
+before being set and sent.
+In Touch Portal expression string `"1"` is not equal to number value `1`.
 
 
 [All declarations are in the file](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.md)
