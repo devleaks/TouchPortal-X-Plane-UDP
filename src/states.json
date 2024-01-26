@@ -19,8 +19,23 @@
                     "type": "int",
                     "name": "Audio COM 1",
                     "dataref-rounding": 0
-                }
+                },
+                {
+                    "formula": "{$sim/cockpit2/switches/strobe_lights_on$}",
+                    "type": "int",
+                    "name": "Strobe light",
+                    "dataref-rounding": 0,
+                    "comment": "Demo of set dataref value to 0 or 1 (I know, there is a sim/lights/strobe_lights_toggle action...)"
+                },
+                {
+                    "formula": "{$sim/cockpit/warnings/annunciators/engine_fire$}",
+                    "type": "int",
+                    "name": "Fire Alarm",
+                    "dataref-rounding": 0,
+                    "comment": "Will light on testing"
+                }                
             ]
         }
-    ]
+    ],
+    "long-press-commands": ["sim/annunciator/test_fire_1_annun"]
 }
