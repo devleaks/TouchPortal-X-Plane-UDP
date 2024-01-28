@@ -844,7 +844,9 @@ class XPlane(XPlaneBeacon):
         logger.debug(f">>>>> monitoring++{len(self.datarefs)}/{self._max_monitored}")
 
     def add_all_datarefs_to_monitor(self) -> None:
-        """Add all dataref that needs monitoring to monitor"""
+        """Request monitoring of all dataref that needs monitoring.
+        Used on startup, when we don't know the status of X-Plane
+        """
         if not self.connected:
             logger.warning("no connection")
             return
@@ -861,6 +863,7 @@ class XPlane(XPlaneBeacon):
         logger.debug(f">>>>> monitoring++{len(self.datarefs_to_monitor)}/{self._max_monitored}")
 
     def add_datarefs_to_monitor(self, datarefs) -> None:
+        """Add datarefs to monitor"""
         if not self.connected:
             logger.warning("no connection")
         # Add those to monitor
@@ -880,6 +883,7 @@ class XPlane(XPlaneBeacon):
         # logger.info(f"monitoring datarefs {prnt}")
 
     def remove_datarefs_to_monitor(self, datarefs) -> None:
+        """Removes datarefs from monitoring"""
         if not self.connected and len(self.datarefs_to_monitor) > 0:
             logger.warning("no connection")
             logger.debug(f"would remove {datarefs.keys()}/{self._max_monitored}")
@@ -905,11 +909,14 @@ class XPlane(XPlaneBeacon):
         logger.debug(f">>>>> monitoring--{len(self.datarefs)}/{self._max_monitored}")
 
     def remove_all_datarefs_to_monitor(self) -> None:
+        """Stop currently monitored datarefs and remove them from monitoring"""
         self.suppress_all_datarefs_monitoring()
         self.datarefs_to_monitor = {}
         logger.debug("done")
 
     def remove_all_datarefs(self) -> None:
+        """Remove all datarefs from local database.
+        First stop monitoring them, then reset database."""
         if not self.connected and len(self.all_datarefs) > 0:
             logger.warning("no connection")
         logger.debug(f"removing..")
@@ -927,6 +934,7 @@ class XPlane(XPlaneBeacon):
         self.suppress_all_datarefs_monitoring()
 
     def start(self) -> None:
+        """Starts both udp reader and local dataref handler"""
         if not self.connected:
             logger.warning("no IP address. could not start.")
             return
@@ -952,6 +960,8 @@ class XPlane(XPlaneBeacon):
         self.add_all_datarefs_to_monitor()  # add all datarefs that need monitoring
 
     def stop(self) -> None:
+        """Stop both udp reader and local dataref handler.
+        First suppress (disable) monitoring of all monitored datarefs."""
         self.suppress_all_datarefs_monitoring()  # cancel previous subscriptions
         if self.udp_queue is not None and self.dref_thread is not None:
             logger.debug("stopping dataref listener..")
@@ -977,7 +987,7 @@ class XPlane(XPlaneBeacon):
     # X-Plane UDP start and stop API
     #
     def terminate(self) -> None:
-        """Cleanly terminates XPlane UDP"""
+        """Cleanly terminates XPlane UDP. Cleanly stop monitoring, shutdown all threads."""
         if self.fma is not None:
             logger.info("stopping FMA..")
             self.fma.stop()
@@ -991,7 +1001,7 @@ class XPlane(XPlaneBeacon):
 
     def init(self) -> None:
         """Initialize XPlane UDP: create dynamic Touch Portal states,
-        loads home page states and connect to X-Plane.
+        collects datarefs per page, loads home page state datarefs, and connect to X-Plane.
         """
         pages = {}
         if not os.path.exists(DYNAMIC_STATES_FILE_NAME):
@@ -1028,7 +1038,11 @@ class XPlane(XPlaneBeacon):
         self.connect()
 
     def reinit(self):
-        # Test if states.json file ok
+        """Reloads states.json file.
+        First tests the states.json file to see if it is ok,
+        then cleanly removes current states (and associated datarefs),
+        finally create new states and collect datarefs used per page (in init() procedure)"""
+        # first tests if states.json file ok
         try:
             if not os.path.exists(DYNAMIC_STATES_FILE_NAME):
                 logger.debug(f"no file {DYNAMIC_STATES_FILE_NAME}")
@@ -1043,7 +1057,7 @@ class XPlane(XPlaneBeacon):
         except:
             logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} is invalid, states not reloaded", exc_info=True)
             return
-        # Unload existing states
+        # unload existing states dataref monitoring of current page if loaded
         if self.current_page in self.pages:
             self.remove_datarefs_to_monitor(self.pages[self.current_page])
         # reset plugin
@@ -1068,3 +1082,9 @@ class XPlane(XPlaneBeacon):
             logger.info(f"changed to page {self.current_page}")
             if self.fma is not None:
                 self.fma.check(self.fma.FMA_BOXES[0] in self.pages[self.current_page])
+        else:
+            logger.warning(f"page {page_name} not found in {DYNAMIC_STATES_FILE_NAME} file")
+            if self.current_page in self.pages:
+                self.remove_datarefs_to_monitor(self.pages[self.current_page])
+                logger.warning(f"monitoring of datarefs in page {self.current_page} ended, no current page")
+                self.current_page = None

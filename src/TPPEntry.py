@@ -1,10 +1,11 @@
 # Version string of this plugin (in Python style).
-__version__ = "2.5"
+__version__ = "2.6"
 
 DYNAMIC_STATES_SETTING = "Dynamic States File"
 DYNAMIC_STATES_FILE_NAME = "states.json"
 DYNAMIC_STATES_FILE_VERSION = 4
-RELOAD_STATES_FILE_COMMAND = "RELOAD_STATES_FILE"
+# In Touch Portal: Execute X-Plane command 'RELOAD_STATES_FILE'
+RELOAD_STATES_FILE_COMMAND = "RELOAD_STATES_FILE"  # when this command is executed, the states.json file is reloaded
 
 
 def dotkey(*a):
@@ -28,10 +29,10 @@ TP_PLUGIN_INFO = {
     "id": PLUGIN_ID,
     # Startup command, with default logging options read from configuration file (see main() for details)
     "plugin_start_cmd": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP/start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
-    "plugin_start_cmd_mac": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP//start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
-    "plugin_start_cmd_linux": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP//start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
-    "plugin_start_cmd_windows": "%TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP\\TouchPortal-X-Plane-UDP.exe",
-    "configuration": {"colorDark": "#25274c", "colorLight": "#707ab5"},
+    "plugin_start_cmd_mac": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP/start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
+    "plugin_start_cmd_linux": "sh %TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP/start.sh TouchPortal-X-Plane-UDP @plugin_config.txt",
+    "plugin_start_cmd_windows": "%TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP\\TouchPortal-X-Plane-UDP.exe @plugin_config.txt",
+    "configuration": {"colorDark": "#25274c", "colorLight": "#707ab5"},  # that's a dark blue and lighter blue.
     "doc": {
         "repository": "devleaks:TouchPortal-X-Plane-UDP",
         "Install": "Please refer to the README file",
@@ -47,7 +48,7 @@ TP_PLUGIN_SETTINGS = {
         # "text" is the default type and could be omitted here
         "type": "text",
         "default": DYNAMIC_STATES_FILE_NAME,
-        "readOnly": False,  # this is also the default
+        "readOnly": True,
         "doc": "File containing TP states to X-Plane dataref mappings",
         "value": None,  # we can optionally use the settings struct to hold the current value
     }
@@ -59,7 +60,7 @@ TP_PLUGIN_CATEGORIES = {"main": {"id": pluginkey("main"), "name": "X-Plane UDP",
 # Action(s) which this plugin supports.
 TP_PLUGIN_ACTIONS = {
     "ExecuteCommand": {
-        # "category" is optional, if omitted then this action will be added to all, or the only, category(ies)
+        # Action to execute a command in X-Plane through UDP
         "category": "main",
         "id": pluginkey("act", "ExecuteCommand"),
         "name": "Execute X-Plane command",
@@ -75,23 +76,25 @@ TP_PLUGIN_ACTIONS = {
         "data": {"command": {"id": pluginkey("act", "XPlaneCommand", "data", "command"), "type": "text", "label": "Command", "default": None}},
     },
     "ExecuteLongPressCommand": {
-        # "category" is optional, if omitted then this action will be added to all, or the only, category(ies)
+        # Action to execute a pair of command in X-Plane through UDP.
+        # When button is pressed, 'command/begin' is send to X-Plane plugin,
+        # execution of 'command' is started until button is released,
+        # in which case 'command/end' is sent to stop the execution of 'command'.
         "category": "main",
         "id": pluginkey("act", "ExecuteLongPressCommand"),
         "name": "Execute X-Plane long press command",
         "prefix": TP_PLUGIN_CATEGORIES["main"]["name"],
         "type": "communicate",
+        "lines": {"action": [{"language": "default", "data": [{"lineFormat": "Execute while pressed $[command]"}]}]},
         "tryInline": True,
         "hasHoldFunctionality": True,
         "doc": "Execute X-Plane long press command",
-        # "format" tokens like $[1] will be replaced in the generated JSON with the corresponding data id wrapped with "{$...$}".
-        # Numeric token values correspond to the order in which the data items are listed here, while text tokens correspond
-        # to the last part of a dotted data ID (the part after the last period; letters, numbers, and underscore allowed).
         "format": "Execute while pressed $[command]",
         "data": {"command": {"id": pluginkey("act", "XPlaneLongPressCommand", "data", "command"), "type": "text", "label": "Command", "default": None}},
     },
     "SetDataref": {
-        # "category" is optional, if omitted then this action will be added to all, or the only, category(ies)
+        # Action to set the value of a single, writable dataref through UDP.
+        # Recall that value set is a float.
         "category": "main",
         "id": pluginkey("act", "SetDataref"),
         "name": "Set X-Plane dataref to a value",
@@ -99,10 +102,7 @@ TP_PLUGIN_ACTIONS = {
         "type": "communicate",
         "lines": {"action": [{"language": "default", "data": [{"lineFormat": "Set $[dataref] to $[datarefvalue]"}]}]},
         "tryInline": True,
-        "doc": "Set X-Plane dataref",
-        # "format" tokens like $[1] will be replaced in the generated JSON with the corresponding data id wrapped with "{$...$}".
-        # Numeric token values correspond to the order in which the data items are listed here, while text tokens correspond
-        # to the last part of a dotted data ID (the part after the last period; letters, numbers, and underscore allowed).
+        "doc": "Set X-Plane dataref to a value",
         "format": "Set $[dataref] to $[datarefvalue]",
         "data": {
             "dataref": {"id": pluginkey("act", "SetDataref", "data", "dataref"), "type": "text", "label": "Dataref", "default": None},
@@ -117,6 +117,7 @@ TP_PLUGIN_CONNECTORS = {}
 # vs. dynamic states which would be created/removed at runtime.
 TP_PLUGIN_STATES = {
     "XPlaneConnected": {
+        # Boolean, true when connected to X-Plane.
         "category": "main",
         "id": pluginkey("state", "XPlaneConnected"),
         "type": "text",
@@ -125,6 +126,8 @@ TP_PLUGIN_STATES = {
         "default": "0",
     },
     "ConnectionMonitoringRunning": {
+        # Boolean, true when the monitoring of the connection to X-Plane runs.
+        # If no conncetion to X-Plane, monitor tries to reconnect until it succeeds.
         "category": "main",
         "id": pluginkey("state", "ConnectionMonitoringRunning"),
         "type": "text",
@@ -133,7 +136,7 @@ TP_PLUGIN_STATES = {
         "default": "0",
     },
     "MonitoringRunning": {
-        # "category" is optional, if omitted then this state will be added to all, or the only, category(ies)
+        # Boolean, true when the monitoring of datarefs is running.
         "category": "main",
         "id": pluginkey("state", "MonitoringRunning"),
         "type": "text",

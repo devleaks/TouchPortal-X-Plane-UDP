@@ -1,6 +1,7 @@
 {
     "version": 4,
     "home-page": "/X-Plane Demo.tml",
+    "comment": "This is the dynamic state definition file for the X-Plane Demo Touch Portal page",
     "pages":
     [
         {
