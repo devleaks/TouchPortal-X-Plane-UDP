@@ -45,15 +45,13 @@ A link is declared by a small JSON definition like so:
 
 The above JSON fragment dynamically creates a Touch Portal state named "Pause".
 
-The formula establishes the link between the X-Plane dataref value(s) (in this case `sim/time/paused`)
-(always a float when fetched through X-Plane UDP API)
+The formula establishes the link between the X-Plane dataref value(s) (in this case `sim/time/paused`,
+always a float when fetched through X-Plane UDP API)
 and the value of the Touch Portal state (in this case, the state named `Pause`).
 
 The formula uses reverse polish notation (RPN).
 
 Using RPN, the formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +`.
-
-The formula may potentially combine several datarefs into a single state value.
 
 To avoid bringing new confusing syntax, the Touch Portal X-Plane UDP Plugin uses the same convention
 as the Touch Portal server application.
@@ -63,7 +61,10 @@ Touch Portal isolates its internal variables between `{$` and `$}` when writing 
 similarly, formula isolates datarefs in framing `{$` and `$}`.
 In a formula, a dataref will be referenced `{$dataref/path/in/simulator$}`.
 
-(Note: You cannot use or reference Touch Portal states or values in formula, only dataref values.)
+The formula may potentially combine several datarefs into a single state value.
+
+(Note: You cannot use or reference Touch Portal states or values in formula, only dataref values.
+So using, for example `${value:tp.plugin.xplaneudp.FCUHEADING}` in a formula is not permitted.)
 
 For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot`
 gives the barometric pressure in inches of mercury,
