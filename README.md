@@ -133,3 +133,22 @@ to circumvent a X-Plane UDP API shortcoming.
 
 The XPPYthon3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
 in XPPYthon3 plugin script folder.
+
+# Touch Portal Events
+
+Here are a few pieces of Touch Portal code that are executed when values of dynamic stage change.
+
+## Change of button appearance
+
+![Change button appearance](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/change-appearance-event.png?raw=true)
+
+## Change of button displayed value
+
+![Change of button displayed value](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/baro-value-change.png?raw=true)
+
+## X-Plane Connection Status (change button icon)
+
+![X-Plane Connection Status](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/connection-status-event.png?raw=true)
+
+
+
