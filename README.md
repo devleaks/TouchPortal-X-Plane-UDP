@@ -1,6 +1,7 @@
 [![build](https://github.com/devleaks/TouchPortal-X-Plane-UDP/actions/workflows/build.yml/badge.svg)](https://github.com/devleaks/TouchPortal-X-Plane-UDP/actions/workflows/build.yml)
 
 
+
 # Touch Portal X-Plane UDP Plugin
 
 Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that aims are providing minimal hooks
@@ -17,12 +18,14 @@ This API has shortcomings but is mostly sufficent to create appealing cockpit an
 
 For other design operations, Touch Portal creators will use Touch Portal tools to create cockpits and dashboards.
 
+
 ## Important Restriction
 
 As currently implemented, the plugin only accepts a single connected client to the Touch Portal server application.
 
 If several users request to lift this restriction, we will consider it
 with the warnings and impacts on X-Plane performances (frame rate).
+
 
 ## X-Plane Datarefs and Touch Portal States
 
@@ -42,25 +45,38 @@ A link is declared by a small JSON definition like so:
 
 The above JSON fragment dynamically creates a Touch Portal state named "Pause".
 
-The formula establishes the link between the X-Plane dataref value(s)
+The formula establishes the link between the X-Plane dataref value(s) (in this case `sim/time/paused`)
 (always a float when fetched through X-Plane UDP API)
-and the value of the Touch Portal state.
+and the value of the Touch Portal state (in this case, the state named `Pause`).
+
 The formula uses reverse polish notation (RPN).
-The formula potentially combines several datarefs into a single state value.
 
 Using RPN, the formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +`.
 
+The formula may potentially combine several datarefs into a single state value.
+
 To avoid bringing new confusing syntax, the Touch Portal X-Plane UDP Plugin uses the same convention
 as the Touch Portal server application.
-Touch Portal uses RPN in expressions and so does the formula.
+Touch Portal server application uses RPN in expressions and so does the formula in the plugin.
+
 Touch Portal isolates its internal variables between `{$` and `$}` when writing expressions;
 similarly, formula isolates datarefs in framing `{$` and `$}`.
 In a formula, a dataref will be referenced `{$dataref/path/in/simulator$}`.
 
+(Note: You cannot use or reference Touch Portal states or values in formula, only dataref values.)
+
 For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot`
 gives the barometric pressure in inches of mercury,
 the following formula convert the pressure in hecto-Pascal (and round it with 0 decimal):
+
 ```
+    {
+        "name": "Pressure in inHg",
+        "formula": "{$sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot$}",
+        "dataref-rounding": 2,
+        "type": "float",
+        "comment": "Just the raw value rounded to 2 decimals"
+    },
     {
         "name": "Pressure in hPa",
         "formula": "{$sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot$} 33.8639 * 0 round",
@@ -77,12 +93,13 @@ will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_i
 
 If present, the optional `dataref-rounding` is a parameter that rounds the raw dataref value as it is received
 from X-Plane before it is substitued in the formula.
-It prevents rapidly (and often isignificantly) fluctuating datarefs to provoque too frequent state value change.
-When carefully rounded to a significant value, the dataref update will only provoke a state update when really necessry.
+It prevents rapidly (and often isignificantly) fluctuating datarefs to provoque too frequent state value changes.
+When carefully rounded to a significant value, the dataref update will only provoke a Touch Portal state update when really necessry.
 
 The `type` attribute determine the type of the Touch Portal state value.
 In Touch Portal expression string `"1"` is not equal to number value `1`.
-Must state values are converted to strings.
+Most state values are converted to strings.
+
 
 ## Touch Portal Dynamic State Defintions
 
@@ -97,6 +114,8 @@ However, internally, it will only be created once.
 
 Declarations all need to be created first before the creator of a page with buttons
 can access them in Touch Portal application.
+
+
 
 # Touch Portal Actions
 
@@ -134,17 +153,34 @@ to circumvent a X-Plane UDP API shortcoming.
 The XPPYthon3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
 in XPPYthon3 plugin script folder.
 
+
+
 # Touch Portal Events
 
 Here are a few pieces of Touch Portal code that are executed when values of dynamic stage change.
+
+The process works as follow:
+
+Through the `states.json` file, the plugin creates a Touch Portal dynamic state
+and notifies X-Plane that it is interested in getting the values of the datarefs referenced in the formula.
+
+The plugin monitors the dataref values it receives. When a value has really changed (after rounding),
+the plugin _computes_ the RPN formula and update the value of the state with the result of the formula.
+
+The plugin change (sends) the value of the dynamic state in Touch Portal server application.
+
+The Touch Portal server application goes through its routine, executing code linked to the state value change events.
+
 
 ## Change of button appearance
 
 ![Change button appearance](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/change-appearance-event.png?raw=true)
 
+
 ## Change of button displayed value
 
 ![Change of button displayed value](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/baro-value-change.png?raw=true)
+
 
 ## X-Plane Connection Status (change button icon)
 
