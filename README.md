@@ -51,9 +51,10 @@ The formula potentially combines several datarefs into a single state value.
 Using RPN, the formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +`.
 
 To avoid bringing new confusing syntax, the Touch Portal X-Plane UDP Plugin uses the same convention
-as the Touch Portal server application: It uses RPN, and variables are isolated in framing `{$` and `$}`.
-
-The formula containing datarefs will use similar convention.
+as the Touch Portal server application.
+Touch Portal uses RPN in expressions and so does the formula.
+Touch Portal isolates its internal variables between `{$` and `$}` when writing expressions;
+similarly, formula isolates datarefs in framing `{$` and `$}`.
 In a formula, a dataref will be referenced `{$dataref/path/in/simulator$}`.
 
 For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot`
@@ -76,14 +77,14 @@ will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_i
 
 If present, the optional `dataref-rounding` is a parameter that rounds the raw dataref value as it is received
 from X-Plane before it is substitued in the formula.
-
 It prevents rapidly (and often isignificantly) fluctuating datarefs to provoque too frequent state value change.
+When carefully rounded to a significant value, the dataref update will only provoke a state update when really necessry.
 
 The `type` attribute determine the type of the Touch Portal state value.
-To ease interaction with Touch Portal server, all state values are converted to strings
-before being set and sent.
 In Touch Portal expression string `"1"` is not equal to number value `1`.
+Must state values are converted to strings.
 
+## Touch Portal Dynamic State Defintions
 
 [All declarations are in the file](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.md)
 `states.json` in a JSON-formatted file.
@@ -101,12 +102,15 @@ can access them in Touch Portal application.
 
 ## X-Plane Commands
 
-To execute a command in X-Plane, the Touch Portal creator uses the Execute X-Plane Command action
+To execute a command in X-Plane, the Touch Portal creator uses the _Execute X-Plane Command_ action
 and supplies the command to execute like `sim/map/show_toggle`.
+
+![Execute command](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/execute-command-2.png?raw=true)
+
 
 ## X-Plane Dataref Value Change
 
-To change the value of a dataref in the simulator, the creator can use the `Set dataref value` action.
+To change the value of a dataref in the simulator, the creator can use the _Set dataref value_ action.
 The action will need the dataref that need to be set and the value.
 
 Recall that X-Plane UDP protocol will always convert the value to float.
@@ -114,20 +118,18 @@ Recall that X-Plane UDP protocol will always convert the value to float.
 You can only set one value at a time. Not an list or array of values.
 To set a value in an array, simply supply its index in the dataref.
 
-```
-set-dataref-value AirbusFBW/throttle_input[0] 0.7
-```
+![Set dataref](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/set-dataref-2.png?raw=true)
+
 
 ## X-Plane Long Press Command
 
-To execute a long press command in X-Plane, the Touch Portal creator uses the Execute Long Press X-Plane Command action
+To execute a long press command in X-Plane, the Touch Portal creator uses the _Execute Long Press X-Plane Command_ action
 and supplies the command to execute.
+
+![Execute long press command](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/execute-long-command-2.png?raw=true)
 
 The execution of Long Press command requires a XPPython3 plugin to execute these commands
 to circumvent a X-Plane UDP API shortcoming.
 
 The XPPYthon3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
 in XPPYthon3 plugin script folder.
-
-
-Last updated 26-JAN-2024
