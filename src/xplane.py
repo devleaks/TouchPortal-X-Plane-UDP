@@ -16,6 +16,7 @@ import re
 
 from datetime import datetime
 from queue import Queue
+from enum import Enum
 from abc import ABC, abstractmethod
 
 from rpc import RPC
@@ -59,6 +60,25 @@ STATE_XP_DREFMON = TP_PLUGIN_STATES["MonitoringRunning"]["id"]
 # Touch Portal dynamic states
 # See TPPEntry.DYNAMIC_STATES_FILE_VERSION
 PATTERN_DOLCB = "{\\$([^\\}]+?)\\$}"  # {$ ... $}: Touch portal variable in formula syntax.
+
+
+# Keywords in states.json file
+class KW(Enum):
+    BOOLEAN = "boolean"
+    DATAREF_ROUNDING = "dataref-rounding"
+    FLOAT = "float"
+    FORMULA = "formula"
+    HOME_PAGE = "home-page"
+    INTEGER = "int"
+    LONG_PRESS_COMMAND = "long-press-commands"
+    PAGE_NAME = "name"
+    PAGES = "pages"
+    STATE_NAME = "name"
+    STATES = "states"
+    SUB_FOLDER = "sub-folder"
+    TYPE = "type"
+    VERSION = "version"
+
 
 # Dynamic state values: note: Dynamic state values are always strings, sometimes confined to a valid list of values.
 # Strings are compared as strings: "1" != "1.0", not number 1 == 1.0.
@@ -203,8 +223,8 @@ class TPState(DatarefListener):
     def __init__(self, name: str, config: dict, sim) -> None:
         DatarefListener.__init__(self, name=name)
         self.internal_name = TPState.mkintname(name)
-        self.formula = config.get("formula", "")
-        self.datatype = config.get("type", "int")
+        self.formula = config.get(KW.FORMULA.value, "")
+        self.datatype = config.get(KW.TYPE.value, "int")
         self.sim = sim
         self.previous_value = None
 
@@ -217,7 +237,7 @@ class TPState(DatarefListener):
         self.datarefs = {}
         for d in self.dataref_paths:
             dref = self.sim.get_dataref(d)
-            dref.set_rounding(config.get("dataref-rounding"))
+            dref.set_rounding(config.get(KW.DATAREF_ROUNDING.value))
             dref.add_listener(self)
             self.datarefs[d] = dref
         loggerTPState.log(15, f"state {self.name}: created {self.internal_name}, uses datarefs {', '.join(self.datarefs.keys())}")
@@ -274,25 +294,25 @@ class TPState(DatarefListener):
             return ""
 
         strvalue = ""
-        if self.datatype[0:3] == "int":
+        if self.datatype.startswith(KW.INTEGER.value):
             try:
                 value = int(value)  # int vs round? ceil? floor?
                 strvalue = f"{value}"
-                if len(self.datatype) > len("int"):
+                if len(self.datatype) > len(KW.INTEGER.value):
                     fmt = f"{{:{self.datatype[3:]}d}}"
                     strvalue = fmt.format(value)
             except ValueError:
                 loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}", exc_info=True)
-        elif self.datatype in ["number", "decimal"] or self.datatype.startswith("float"):
+        elif self.datatype in ["number", "decimal"] or self.datatype.startswith(KW.FLOAT.value):
             try:
                 value = float(value)
                 strvalue = f"{value}"  # should format? yeah!
-                if self.datatype.startswith("float") and len(self.datatype) > len("float"):
+                if self.datatype.startswith(KW.FLOAT.value) and len(self.datatype) > len(KW.FLOAT.value):
                     fmt = f"{{:{self.datatype[len('float'):]}f}}"
                     strvalue = fmt.format(value)
             except ValueError:
                 loggerTPState.warning(f"could not convert '{value}' to datatype {self.datatype}", exc_info=True)
-        elif self.datatype in ["bool", "boolean", "yesno"]:
+        elif self.datatype in [KW.BOOLEAN.value, "bool", "yesno"]:
             try:
                 value = value is not None and value != 0
                 strvalue = f"{value}".upper()  # TRUE or FALSE, if 0 or 1 needed, please return a int
@@ -551,8 +571,10 @@ class XPlane(XPlaneBeacon):
 
         self.states = {}  # {state_internal_name: TPState}
         self.pages = {}  # {page_name: {dref-path: Dataref}}
+        self.page_usages = {}  # {page_name: usage_count}
         self.home_page = None
         self.current_page = "main"
+        self.clients_current_page = {}  # {client_id: current_page}
 
         # internal stats
         self._max_monitored = 0  # higest number of datarefs monitored at one point in time
@@ -1010,20 +1032,21 @@ class XPlane(XPlaneBeacon):
 
         with open(DYNAMIC_STATES_FILE_NAME, "r") as fp:
             states = json.load(fp)
-            version = states.get("version")
+            version = states.get(KW.VERSION.value)
             if version != DYNAMIC_STATES_FILE_VERSION:
                 logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
                 return
-            pages = states.get("pages")
-            self.home_page = states.get("home-page")  # warning if home page is not specified?
+            pages = states.get(KW.PAGES.value)
+            self.home_page = states.get(KW.HOME_PAGE.value)  # warning if home page is not specified?
 
         tot_drefs = 0
         for page in pages:
-            page_name = page.get("name")
+            page_name = page.get(KW.PAGE_NAME.value)
             self.pages[page_name] = {}
-            page_states = page.get("states")
+            self.page_usages[page_name] = 0
+            page_states = page.get(KW.STATES.value)
             for state in page_states:
-                name = state.get("name")
+                name = state.get(KW.STATE_NAME.value)
                 internal_name = TPState.mkintname(name)
                 if internal_name not in self.states.keys():
                     self.states[internal_name] = TPState(name=name, config=state, sim=self)
@@ -1050,7 +1073,7 @@ class XPlane(XPlaneBeacon):
 
             with open(DYNAMIC_STATES_FILE_NAME, "r") as fp:
                 states = json.load(fp)
-                version = states.get("version")
+                version = states.get(KW.VERSION.value)
                 if version != DYNAMIC_STATES_FILE_VERSION:
                     logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
                     return
@@ -1059,7 +1082,9 @@ class XPlane(XPlaneBeacon):
             return
         # unload existing states dataref monitoring of current page if loaded
         if self.current_page in self.pages:
-            self.remove_datarefs_to_monitor(self.pages[self.current_page])
+            self.page_usages[self.current_page] = self.page_usages[self.current_page] - 1
+            if self.page_usages[self.current_page] == 0:
+                self.remove_datarefs_to_monitor(self.pages[self.current_page])
         # reset plugin
         self.pages = {}
         # delete existing states
@@ -1067,6 +1092,22 @@ class XPlane(XPlaneBeacon):
             del state
         # load states file again
         self.init()
+
+    def _unload_page(self, page_name: str):
+        if page_name in self.pages.keys():
+            self.page_usages[page_name] = self.page_usages[page_name] - 1
+            if self.page_usages[page_name] == 0:
+                self.remove_datarefs_to_monitor(self.pages[page_name])
+        else:
+            logger.warning(f"page {page_name} not found")
+
+    def _load_page(self, page_name: str):
+        if page_name in self.pages.keys():
+            if self.page_usages[page_name] == 0:
+                self.add_datarefs_to_monitor(self.pages[page_name])
+            self.page_usages[page_name] = self.page_usages[page_name] + 1
+        else:
+            logger.warning(f"page {page_name} not found")
 
     def change_page(self, page_name: str):
         """Called on Touch Portal page changes.
@@ -1076,15 +1117,17 @@ class XPlane(XPlaneBeacon):
         """
         if page_name in self.pages.keys():
             if self.current_page in self.pages:
-                self.remove_datarefs_to_monitor(self.pages[self.current_page])
+                self._unload_page(self.current_page)
             self.current_page = page_name
-            self.add_datarefs_to_monitor(self.pages[self.current_page])
+            self._load_page(self.current_page)
             logger.info(f"changed to page {self.current_page}")
             if self.fma is not None:
                 self.fma.check(self.fma.FMA_BOXES[0] in self.pages[self.current_page])
         else:
             logger.warning(f"page {page_name} not found in {DYNAMIC_STATES_FILE_NAME} file")
             if self.current_page in self.pages:
-                self.remove_datarefs_to_monitor(self.pages[self.current_page])
-                logger.warning(f"monitoring of datarefs in page {self.current_page} ended, no current page")
+                self.page_usages[self.current_page] = self.page_usages[self.current_page] - 1
+                if self.page_usages[self.current_page] == 0:
+                    self.remove_datarefs_to_monitor(self.pages[self.current_page])
+                    logger.warning(f"monitoring of datarefs in page {self.current_page} ended, no current page")
                 self.current_page = None
