@@ -4,7 +4,7 @@
 
 # Touch Portal X-Plane UDP Plugin
 
-Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that aims are providing minimal hooks
+Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that aims at providing minimal hooks
  - to trigger X-Plane commands,
  - to collect X-Plane dataref values to change appearance of Touch Portal buttons.
 
