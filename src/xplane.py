@@ -1028,7 +1028,7 @@ class XPlane(XPlaneBeacon):
     # ############################################
     # State creation/supression
     #
-    def init(self, client_id: str = "default") -> None:
+    def init(self) -> None:
         """Initialize XPlane UDP: create dynamic Touch Portal states,
         collects datarefs per page, loads home page state datarefs, and connect to X-Plane.
         """
