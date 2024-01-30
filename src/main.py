@@ -80,7 +80,7 @@ def onConnect(data):
     g_log.debug("Initialising X-Plane client..")
     # This will create all dynamic states, establish X-Plane connection,
     # and start monitoring datarefs.
-    XPClient.init()  # will pass client id?
+    XPClient.init()
     g_log.debug("..X-Plane client started")
 
 
@@ -107,7 +107,7 @@ def onAction(data):
             return
         if action_value == TPPEntry.RELOAD_STATES_FILE_COMMAND:  # hack, trick, special keyword for developments
             g_log.info("reloading states  file")
-            XPClient.reinit()  # will pass client id?
+            XPClient.reinit()
             return
         XPClient.commandOnce(action_value)
         g_log.debug(f"commandOnce {action_value}")
@@ -118,13 +118,17 @@ def onAction(data):
         XPClient.write_dataref(dataref=dataref_name, value=dataref_value)
         g_log.debug(f"setDataref {dataref_name}={dataref_value}")
 
+    elif aid == TPPEntry.TP_PLUGIN_ACTIONS["LeavingPage"]["id"]:
+        page_path = TPClient.getActionDataValue(action_data, TPPEntry.TP_PLUGIN_ACTIONS["LeavingPage"]["data"]["pagePath"]["id"])
+        XPClient.leaving_page(page_name=page_path)
+        g_log.info(f"Left page {page_path}")
+
     else:
         g_log.warning("Got unknown action ID: " + aid)
 
 
 @TPClient.on(TP.TYPES.onHold_down)
 def onAction(data):
-    print(">>>", data)
     g_log.debug(f"Action: {data}")
 
     # check that `data` and `actionId` members exist and save them for later use
@@ -165,9 +169,9 @@ def onShutdown(data):
 
 
 # Error handler
-@TPClient.on(TP.TYPES.onError)
-def onError(exc):
-    g_log.error(f"Error in TP Client event handler: {repr(exc)}")
+# @TPClient.on(TP.TYPES.onError)
+# def onError(exc):
+#     g_log.error(f"Error in TP Client event handler: {repr(exc)}")
 
 
 @TPClient.on(TP.TYPES.onBroadcast)
@@ -179,8 +183,8 @@ def onAction(data):
         return
 
     if broadcast_event == "pageChange":
-        XPClient.change_page(page_name)  # will pass client id?
-        g_log.info(f"changed page to {page_name}")
+        XPClient.entering_page(page_name)
+        g_log.info(f"Entered page {page_name}")
 
 
 # @TPClient.on(TP.TYPES.allMessage)

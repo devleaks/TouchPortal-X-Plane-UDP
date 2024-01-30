@@ -34,7 +34,7 @@ PLUGIN_ENTRY_INDENT: This is used for generating new entry.tp with indentations 
 PLUGIN_ROOT = "TouchPortal-X-Plane-UDP"
 """ This is the root folder name that will be inside of .tpp """
 
-PLUGIN_ICON = r""
+PLUGIN_ICON = r"tpxpudpplugin.png"
 """ Path to icon file used in entry.tp for category `imagepath`, if any. If left blank, TP will use a default icon. """
 
 OUTPUT_PATH = r"./"
@@ -57,7 +57,7 @@ with open(entry, "r") as f:
 """
 If you have any required file(s) that your plugin needs, put them in this list.
 """
-ADDITIONAL_FILES = ["plugin_config.txt", TPPEntry.DYNAMIC_STATES_FILE_NAME]
+ADDITIONAL_FILES = ["plugin_config.txt", TPPEntry.DYNAMIC_STATES_FILE_NAME, "tpxpudpplugin.png"]
 
 """
 start.sh file is not needed for Windows machine. as it can execute the exe itself where as

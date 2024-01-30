@@ -46,7 +46,7 @@ DEFAULT_REQ_FREQUENCY = 1  # if no frequency is supplied (or forced to None), th
 MAX_DREF_COUNT = 80  # Absolute maximum number of dataref that can be requested to X-Plane, CTD around ~100 datarefs
 # UDP sends at most ~40 to ~50 dataref values per packet.
 
-LOOP_ALIVE = 100  # report loop activity every 1000 executions on DEBUG, set to None to suppress output
+LOOP_ALIVE = 1000  # report loop activity every LOOP_ALIVE executions on DEBUG, set to None to suppress output
 SOCKET_TIMEOUT = 5  # seconds, when not receiving a UDP packet for 5 seconds, declare a timeout
 MAX_TIMEOUT_COUNT = 5  # count, after MAX_TIMEOUT_COUNT timeouts, assumes connection lost, disconnect, and try to reconnect
 RECONNECT_TIMEOUT = 10  # seconds, when disconnceted, retries every RECONNECT_TIMEOUT seconds
@@ -559,7 +559,7 @@ class XPlane(XPlaneBeacon):
     BEACON_TIMEOUT = 3.0  # seconds
 
     # Internal key word
-    TERMINATE_QUEUE = "quit"
+    TERMINATE_QUEUE = "__quit__"
 
     def __init__(self, tpclient):
         self.all_datarefs = {}  # all registed datarefs, exist only once here: { "sim/time/seconds": <Dataref> }
@@ -572,12 +572,6 @@ class XPlane(XPlaneBeacon):
         self.states = {}  # {state_internal_name: TPState}
         self.pages = {}  # {page_name: {dref-path: Dataref}}
         self.page_usages = {}  # {page_name: usage_count}
-        self.home_page = None
-        self.current_page = "main"
-        self.clients_current_page = {}  # {client_id: current_page}, which page is active on each client
-
-        # internal stats
-        self._max_monitored = 0  # higest number of datarefs monitored at one point in time
 
         # Dataref value enqueue/dequeue
         # -> Reads UDP packets and enqueue values
@@ -587,7 +581,12 @@ class XPlane(XPlaneBeacon):
         self.dref_thread = None
         self.no_upd_enqueue = None
 
+        # internal stats
+        self._max_monitored = 0  # higest number of datarefs monitored at one point in time
+
         XPlaneBeacon.__init__(self, tpclient)
+
+        # Special Toliss FMA display, if available
         self.fma = None
         try:
             from fma import FMA
@@ -669,8 +668,8 @@ class XPlane(XPlaneBeacon):
         message = struct.pack("<5sii400s", cmd, freq, idx, string)
         assert len(message) == 413
         self.socket.sendto(message, (self.beacon_data["IP"], self.beacon_data["Port"]))
-        if self.datarefidx % LOOP_ALIVE == 0:
-            time.sleep(0.2)
+        # if self.datarefidx % LOOP_ALIVE == 0:
+        #     time.sleep(0.2)
         return True
 
     def _execute_command(self, command: Command) -> None:
@@ -784,12 +783,17 @@ class XPlane(XPlaneBeacon):
         total_values = 0
         total_duration = 0.0
         total_update_duration = 0.0
+        total_bl = 0
+        runs = 0
         maxbl = 0
 
         while dequeue_run:
             values = self.udp_queue.get()
             bl = self.udp_queue.qsize()
-            maxbl = max(bl, maxbl)
+            total_bl = total_bl + bl
+            runs = runs + 1
+            bl_avg = round(total_bl / runs, 1)
+            maxbl = max(bl_avg, maxbl)
             if type(values) is str and values == XPlane.TERMINATE_QUEUE:
                 dequeue_run = False
                 continue
@@ -811,7 +815,7 @@ class XPlane(XPlaneBeacon):
                 total_duration = total_duration + duration.microseconds / 1000000
                 if total_values % LOOP_ALIVE == 0 and total_updates > 0:
                     logger.debug(
-                        f"average update time {round(total_update_duration / total_updates, 3)} ({total_updates} updates), {round(total_duration / total_values, 5)} ({total_values} values), backlog {bl}/{maxbl}."
+                        f"average update time {round(total_update_duration / total_updates, 3)} ({total_updates} updates), {round(total_duration / total_values, 5)} ({total_values} values), backlog {bl_avg}/{maxbl}."
                     )  # ignore
 
             except RuntimeError:
@@ -1021,7 +1025,10 @@ class XPlane(XPlaneBeacon):
         self.stop()
         logger.info("..terminated")
 
-    def init(self, client_id: str = None) -> None:
+    # ############################################
+    # State creation/supression
+    #
+    def init(self, client_id: str = "default") -> None:
         """Initialize XPlane UDP: create dynamic Touch Portal states,
         collects datarefs per page, loads home page state datarefs, and connect to X-Plane.
         """
@@ -1037,7 +1044,6 @@ class XPlane(XPlaneBeacon):
                 logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
                 return
             pages = states.get(KW.PAGES.value)
-            self.home_page = states.get(KW.HOME_PAGE.value)  # warning if home page is not specified?
 
         tot_drefs = 0
         for page in pages:
@@ -1057,10 +1063,10 @@ class XPlane(XPlaneBeacon):
             logger.info(f"page {page_name} loaded {len(page_states)} states, {dref_cnt} datarefs")
 
         logger.info(f"declared {len(self.states)} states, {tot_drefs} datarefs")
-        self.change_page(self.home_page, client_id)
         self.connect()
+        logger.info("\n*\n" + "*" * 80 + "\n*\n*  Please start client(s) now, or reflesh client pages if already started\n*\n" + "*" * 80 + "\n*")
 
-    def reinit(self, client_id: str = None):
+    def reinit(self):
         """Reloads states.json file.
         First tests the states.json file to see if it is ok,
         then cleanly removes current states (and associated datarefs),
@@ -1080,54 +1086,71 @@ class XPlane(XPlaneBeacon):
         except:
             logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} is invalid, states not reloaded", exc_info=True)
             return
-        # unload existing states dataref monitoring of current page if loaded
-        self._unload_page(self.current_page)
-        self.current_page = None
+        # unload existing states dataref monitoring of current page of all clients
+        for page in self.pages:
+            if self.page_usages[page] > 0:
+                self.page_usages[page] = 1  # will force unload
+                self._unload_page(page)
         # reset plugin
         self.pages = {}
         # delete existing states
         for state in self.states.values():
             del state
         # load states file again
-        self.init(client_id=client_id)
+        self.init()
+
+    # ############################################
+    # Page manipulations
+    #
+    def check_fma(self):
+        if self.fma is not None:
+            run = False
+            for page in self.page_usages:
+                if self.page_usages[page] > 0:
+                    if not run:
+                        run = run or self.fma.FMA_BOXES[0] in self.pages[page]
+            logger.debug(f"check_fma {run}")
+            self.fma.check(run)
 
     def _unload_page(self, page_name: str):
+        # logger.debug(f"page usage before unload: {page_name}: {self.page_usages[page_name]}")
         if page_name in self.pages.keys():
-            self.page_usages[page_name] = self.page_usages[page_name] - 1
-            if self.page_usages[page_name] == 0:
-                self.remove_datarefs_to_monitor(self.pages[page_name])
+            if self.page_usages[page_name] > 0:
+                self.page_usages[page_name] = self.page_usages[page_name] - 1
+                if self.page_usages[page_name] == 0:
+                    self.remove_datarefs_to_monitor(self.pages[page_name])
         else:
             logger.warning(f"page {page_name} not found")
+        logger.debug(f"page usage: {self.page_usages}")
 
     def _load_page(self, page_name: str):
+        # logger.debug(f"page usage before load: {page_name}: {self.page_usages[page_name]}")
         if page_name in self.pages.keys():
+            logger.debug(f"page usage: {page_name}: {self.page_usages[page_name]}")
             if self.page_usages[page_name] == 0:
                 self.add_datarefs_to_monitor(self.pages[page_name])
             self.page_usages[page_name] = self.page_usages[page_name] + 1
         else:
             logger.warning(f"page {page_name} not found")
+        logger.debug(f"page usage: {self.page_usages}")
 
-    def change_page(self, page_name: str, client_id: str = None):
+    def leaving_page(self, page_name: str):
+        if page_name in self.pages.keys():
+            self._unload_page(page_name)
+            logger.debug(f"left page {page_name}")
+            self.check_fma()
+        else:
+            logger.warning(f"page {page_name} not found")
+
+    def entering_page(self, page_name: str):
         """Called on Touch Portal page changes.
         Unloads currently monitored datarefs and load datarefs needed on new page.
         Args:
             page_name (str): Name of page being loaded. Must match the named supplied in states.json.
         """
-        if page_name in self.pages.keys():
-            if self.current_page in self.pages:
-                self._unload_page(self.current_page)
-            self.current_page = page_name
-            self._load_page(self.current_page)
-            logger.info(f"changed to page {self.current_page}")
-            if client_id is not None:
-                self.clients_current_page[client_id] = self.current_page
-            if self.fma is not None:
-                self.fma.check(self.fma.FMA_BOXES[0] in self.pages[self.current_page])
+        if page_name in self.pages:
+            self._load_page(page_name)
+            logger.debug(f"entered page {page_name}")
+            self.check_fma()
         else:
             logger.warning(f"page {page_name} not found in {DYNAMIC_STATES_FILE_NAME} file")
-            if self.current_page in self.pages:
-                self.page_usages[self.current_page] = self.page_usages[self.current_page] - 1
-                if self.page_usages[self.current_page] == 0:
-                    self.remove_datarefs_to_monitor(self.pages[self.current_page])
-                    logger.warning(f"monitoring of datarefs in page {self.current_page} ended, no current page")
-                self.current_page = None

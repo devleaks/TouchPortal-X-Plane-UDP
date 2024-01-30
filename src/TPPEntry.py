@@ -15,6 +15,7 @@ def dotkey(*a):
 # The unique plugin ID string is used in multiple places.
 # It also forms the base for all other ID strings (for states, actions, etc).
 PLUGIN_ID = dotkey("tp", "plugin", "xplaneudp")
+PLUGIN_ICON = "tpxpudpplugin.png"
 
 
 def pluginkey(*a):
@@ -55,7 +56,7 @@ TP_PLUGIN_SETTINGS = {
 }
 
 # This example only uses one Category for actions/etc., but multiple categories are supported also.
-TP_PLUGIN_CATEGORIES = {"main": {"id": pluginkey("main"), "name": "X-Plane UDP", "imagepath": "tpxpudpplugin.png"}}
+TP_PLUGIN_CATEGORIES = {"main": {"id": pluginkey("main"), "name": "X-Plane UDP", "imagepath": "%TP_PLUGIN_FOLDER%TouchPortal-X-Plane-UDP/tpxpudpplugin.png"}}
 
 # Action(s) which this plugin supports.
 TP_PLUGIN_ACTIONS = {
@@ -108,6 +109,20 @@ TP_PLUGIN_ACTIONS = {
             "dataref": {"id": pluginkey("act", "SetDataref", "data", "dataref"), "type": "text", "label": "Dataref", "default": None},
             "datarefvalue": {"id": pluginkey("act", "SetDataref", "data", "datarefvalue"), "type": "text", "label": "Dataref Value", "default": None},
         },
+    },
+    "LeavingPage": {
+        # Action to transmit the name of the page we are currently leaving.
+        "category": "main",
+        "id": pluginkey("act", "LeavingPage"),
+        "name": "Leaving page",
+        "prefix": TP_PLUGIN_CATEGORIES["main"]["name"],
+        "type": "communicate",
+        "lines": {"action": [{"language": "default", "data": [{"lineFormat": "Leaving page $[pagePath]"}]}]},
+        "tryInline": True,
+        "hasHoldFunctionality": True,
+        "doc": "Leaving page",
+        "format": "Leaving page $[pagePath]",
+        "data": {"pagePath": {"id": pluginkey("act", "LeavingPage", "data", "pagePath"), "type": "text", "label": "Page path", "default": None}},
     },
 }
 
