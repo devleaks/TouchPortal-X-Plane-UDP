@@ -1,10 +1,11 @@
 # Installation and Tests
 
 1. Enable UDP access in X-Plane.
-2. In Touch Portal, import the `X-Plane Demo Page.tpz2`
-3. In Touch Portal, import the `TouchPortal-X-Plane-UDP_vX.Y_???.tpp` plugin corresponding to your operating system (`???`).
-4. In Touch Portal, create a value named pagepath.
-5. In Touch Portal, import the flow `Page-Switch.tpe`.
+1. In Touch Portal, import the `TouchPortal-X-Plane-UDP_vX.Y_???.tpp` plugin corresponding to your operating system (`???`).
+1. In Touch Portal, import the `X-Plane Demo Page.tpz2`
+1. In Touch Portal, create a value named pagepath.
+1. In Touch Portal, import the event `Page-Switch.tpe`.
+
 After importing, restart Touch Portal as required.
 
 
@@ -13,7 +14,7 @@ After importing, restart Touch Portal as required.
 ![Page Path value](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/page-path-value.png?raw=true)
 
 
-## Import a Flow
+## Import an Event
 
 ![Page Switch Event](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/page-switch-event.png?raw=true)
 
