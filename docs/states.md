@@ -64,9 +64,10 @@ to reload the states.json file.
 To do so, add a Touch Portal action "Execute X-Plane command", and as
 an action to execute, add the secret keywork RELOAD_STATES_FILE string.
 
+![Reload states file](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/reload-states-file.png?raw=true)
+
 When triggered, this action will reload the state file, deleting states
 that no longer exists in the file and adding new states if any.
 
 This is solely used during development process, when the page developer
 creates new dynamic states for X-Plane interaction.
-
