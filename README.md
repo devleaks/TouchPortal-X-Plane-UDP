@@ -8,23 +8,18 @@ Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that aims at providing 
  - to trigger X-Plane commands,
  - to collect X-Plane dataref values to change appearance of Touch Portal buttons.
 
-Before using the plugin, users must collect information in X-Plane about the datarefs
-that will drive button appearance.
-This information will be used to create Touch Portal (dynamic) states based on X-Plane datarefs.
+To interface to X-Plane, the Touch Portal plugin uses X-Plane built-in UDP «API».
+The X-Plane UDP API has shortcomings but is mostly sufficent to create appealing cockpit and dashboards.
+
+Before using the plugin, the Touch Portal interface developer will need to collect
+information in X-Plane, such as the commands to execute (usualy expressed as a string like `sim/map/show_current`),
+or simulator variable names also called datarefs, like `sim/cockpit2/radios/actuators/audio_selection_com1`.
+
+After collecting this information, a little configuration file will establish the link
+between those X-Plane datarefs and Touch Portal states used to drive Touch Portal buttons appearance.
 The plugin will then ensure that when the dataref value changes, the Touch Portal state changes accordingly.
 
-To interface to X-Plane, the plugin uses X-Plane built-in UDP «API».
-This API has shortcomings but is mostly sufficent to create appealing cockpit and dashboards.
-
 For other design operations, Touch Portal creators will use Touch Portal tools to create cockpits and dashboards.
-
-
-## Important Restriction
-
-As currently implemented, the plugin only accepts a single connected client to the Touch Portal server application.
-
-If several users request to lift this restriction, we will consider it
-with the warnings and impacts on X-Plane performances (frame rate).
 
 
 ## X-Plane Datarefs and Touch Portal States
@@ -188,4 +183,16 @@ The Touch Portal server application goes through its routine, executing code lin
 ![X-Plane Connection Status](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/connection-status-event.png?raw=true)
 
 
+## Important: Change of Pages
 
+When using standard Touch Portal action "Go to page", it is necessary to prepend this instruction
+with another instruction.
+Touch Portal notifies the plugin of the page it is entering, but not the page it is leaving.
+The above instruction simply add that information.
+
+![X-Plane Connection Status](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/go-to-page.png?raw=true)
+
+
+# Installation
+
+Details are [here](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/install.md).
