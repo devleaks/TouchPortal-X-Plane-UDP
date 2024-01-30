@@ -80,7 +80,7 @@ def onConnect(data):
     g_log.debug("Initialising X-Plane client..")
     # This will create all dynamic states, establish X-Plane connection,
     # and start monitoring datarefs.
-    XPClient.init()
+    XPClient.init()  # will pass client id?
     g_log.debug("..X-Plane client started")
 
 
@@ -107,7 +107,7 @@ def onAction(data):
             return
         if action_value == TPPEntry.RELOAD_STATES_FILE_COMMAND:  # hack, trick, special keyword for developments
             g_log.info("reloading states  file")
-            XPClient.reinit()
+            XPClient.reinit()  # will pass client id?
             return
         XPClient.commandOnce(action_value)
         g_log.debug(f"commandOnce {action_value}")
@@ -124,6 +124,7 @@ def onAction(data):
 
 @TPClient.on(TP.TYPES.onHold_down)
 def onAction(data):
+    print(">>>", data)
     g_log.debug(f"Action: {data}")
 
     # check that `data` and `actionId` members exist and save them for later use
@@ -178,7 +179,7 @@ def onAction(data):
         return
 
     if broadcast_event == "pageChange":
-        XPClient.change_page(page_name)
+        XPClient.change_page(page_name)  # will pass client id?
         g_log.info(f"changed page to {page_name}")
 
 

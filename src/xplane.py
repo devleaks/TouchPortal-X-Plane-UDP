@@ -265,7 +265,7 @@ class TPState(DatarefListener):
         valstr = self.value()
         # logger.debug(f"dataref {dataref.path} changed, setting {self.internal_name}={valstr}")
         if self.previous_value != valstr:
-            self.sim.tpclient.stateUpdate(self.internal_name, valstr)
+            self.sim.tpclient.stateUpdate(self.internal_name, valstr if valstr is not None else "")
             loggerTPState.log(15, f"state {self.name}: updated {self.previous_value} -> {valstr}")
             self.previous_value = valstr
 
@@ -574,7 +574,7 @@ class XPlane(XPlaneBeacon):
         self.page_usages = {}  # {page_name: usage_count}
         self.home_page = None
         self.current_page = "main"
-        self.clients_current_page = {}  # {client_id: current_page}
+        self.clients_current_page = {}  # {client_id: current_page}, which page is active on each client
 
         # internal stats
         self._max_monitored = 0  # higest number of datarefs monitored at one point in time
@@ -1021,7 +1021,7 @@ class XPlane(XPlaneBeacon):
         self.stop()
         logger.info("..terminated")
 
-    def init(self) -> None:
+    def init(self, client_id: str = None) -> None:
         """Initialize XPlane UDP: create dynamic Touch Portal states,
         collects datarefs per page, loads home page state datarefs, and connect to X-Plane.
         """
@@ -1057,10 +1057,10 @@ class XPlane(XPlaneBeacon):
             logger.info(f"page {page_name} loaded {len(page_states)} states, {dref_cnt} datarefs")
 
         logger.info(f"declared {len(self.states)} states, {tot_drefs} datarefs")
-        self.change_page(self.home_page)
+        self.change_page(self.home_page, client_id)
         self.connect()
 
-    def reinit(self):
+    def reinit(self, client_id: str = None):
         """Reloads states.json file.
         First tests the states.json file to see if it is ok,
         then cleanly removes current states (and associated datarefs),
@@ -1081,17 +1081,15 @@ class XPlane(XPlaneBeacon):
             logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} is invalid, states not reloaded", exc_info=True)
             return
         # unload existing states dataref monitoring of current page if loaded
-        if self.current_page in self.pages:
-            self.page_usages[self.current_page] = self.page_usages[self.current_page] - 1
-            if self.page_usages[self.current_page] == 0:
-                self.remove_datarefs_to_monitor(self.pages[self.current_page])
+        self._unload_page(self.current_page)
+        self.current_page = None
         # reset plugin
         self.pages = {}
         # delete existing states
         for state in self.states.values():
             del state
         # load states file again
-        self.init()
+        self.init(client_id=client_id)
 
     def _unload_page(self, page_name: str):
         if page_name in self.pages.keys():
@@ -1109,7 +1107,7 @@ class XPlane(XPlaneBeacon):
         else:
             logger.warning(f"page {page_name} not found")
 
-    def change_page(self, page_name: str):
+    def change_page(self, page_name: str, client_id: str = None):
         """Called on Touch Portal page changes.
         Unloads currently monitored datarefs and load datarefs needed on new page.
         Args:
@@ -1121,6 +1119,8 @@ class XPlane(XPlaneBeacon):
             self.current_page = page_name
             self._load_page(self.current_page)
             logger.info(f"changed to page {self.current_page}")
+            if client_id is not None:
+                self.clients_current_page[client_id] = self.current_page
             if self.fma is not None:
                 self.fma.check(self.fma.FMA_BOXES[0] in self.pages[self.current_page])
         else:
