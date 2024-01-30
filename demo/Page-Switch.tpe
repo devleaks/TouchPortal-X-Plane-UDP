@@ -1,0 +1,10 @@
+{
+    "events":
+    [
+        "{\"isFolder\":false,\"eventObject\":{\"cooldownflow\":[],\"kQ\":-1,\"isEnabled\":true,\"cbe\":\"Navigation - When Page Changed\",\"name\":\"Page Switch\",\"cooldown\":0,\"id\":64549,\"event\":{\"kP\":\"*\",\"kIEn\":true,\"KEY_TYPE\":\"ON_PAGE_CHANGED_EVENT\"},\"flow\":[{\"kSI\":\"pagepath\",\"kIEn\":true,\"kPN\":\"Page Path\",\"KEY_TYPE\":\"SET_CUSTOM_STATE_ACTION\",\"kSV\":\"$local{PagePathChangedTo}\"}]},\"name\":\"Page Switch\"}"
+    ],
+    "states":
+    [
+        "{\"STATE_ID\":\"pagepath\",\"STATE_PRETTY_NAME\":\"Page Path\",\"kiP\":0,\"STATE_COLOR\":\"#4682d4\",\"kT\":0,\"STATE_DEFAULT_VALUE\":\"\"}"
+    ]
+}
