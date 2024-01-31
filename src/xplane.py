@@ -1066,25 +1066,26 @@ class XPlane(XPlaneBeacon):
         self.connect()
         logger.info("\n*\n" + "*" * 80 + "\n*\n*  Please start client(s) now, or reflesh client pages if already started\n*\n" + "*" * 80 + "\n*")
 
-    def reinit(self):
-        """Reloads states.json file.
+    def reinit(self, fn: str = None):
+        """Reloads states.json file. Allow for non standard locations.
         First tests the states.json file to see if it is ok,
         then cleanly removes current states (and associated datarefs),
         finally create new states and collect datarefs used per page (in init() procedure)"""
         # first tests if states.json file ok
         try:
-            if not os.path.exists(DYNAMIC_STATES_FILE_NAME):
-                logger.debug(f"no file {DYNAMIC_STATES_FILE_NAME}")
+            filename = fn if fn is not None else DYNAMIC_STATES_FILE_NAME
+            if not os.path.exists(filename):
+                logger.debug(f"no file {filename}")
                 return
 
-            with open(DYNAMIC_STATES_FILE_NAME, "r") as fp:
+            with open(filename, "r") as fp:
                 states = json.load(fp)
                 version = states.get(KW.VERSION.value)
                 if version != DYNAMIC_STATES_FILE_VERSION:
-                    logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
+                    logger.warning(f"states file {filename} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
                     return
         except:
-            logger.warning(f"states file {DYNAMIC_STATES_FILE_NAME} is invalid, states not reloaded", exc_info=True)
+            logger.warning(f"states file {filename} is invalid, states not reloaded", exc_info=True)
             return
         # unload existing states dataref monitoring of current page of all clients
         for page in self.pages:
