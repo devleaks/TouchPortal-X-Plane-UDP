@@ -33,10 +33,11 @@
                     "type": "int",
                     "name": "Fire Alarm",
                     "dataref-rounding": 0,
-                    "comment": "Will light on testing"
+                    "comment": "Will light when testing long press command below"
                 }                
             ]
         }
     ],
-    "long-press-commands": ["sim/annunciator/test_fire_1_annun"]
+    "long-press-commands": ["sim/annunciator/test_fire_1_annun"],
+    "comment": "Above attribute used by PI_tpxp_helper plugin to identify all long press commands used on these pages"
 }

@@ -141,13 +141,22 @@ To set a value in an array, simply supply its index in the dataref.
 To execute a long press command in X-Plane, the Touch Portal creator uses the _Execute Long Press X-Plane Command_ action
 and supplies the command to execute.
 
+A long press command is a command that is executed while the button remain pressed.
+It must not be confused with an auto-repeat command.
+
+A long press command is executed once and last for the duration of the pressing on the button.
+A command with auto-repeat is a command that will be executed several times,
+at given regular interval, for the duration of the pressing on the button.
+
 ![Execute long press command](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/execute-long-command-2.png?raw=true)
 
 The execution of Long Press command requires a XPPython3 plugin to execute these commands
 to circumvent a X-Plane UDP API shortcoming.
 
-The XPPYthon3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
-in XPPYthon3 plugin script folder.
+The XPPython3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
+in XPPython3 plugin script folder.
+
+If the plugin `PI_tpxp_helper.py` is not installed, no long press command will work.
 
 
 
