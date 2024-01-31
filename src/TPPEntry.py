@@ -1,5 +1,5 @@
 # Version string of this plugin (in Python style).
-__version__ = "2.7"
+__version__ = "2.8"
 
 DYNAMIC_STATES_SETTING = "Dynamic States File"
 DYNAMIC_STATES_FILE_NAME = "states.json"

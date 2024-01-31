@@ -160,7 +160,7 @@ class Dataref:
             loggerDataref.warning(f"{self.path} not a listener {obj}")
         if obj not in self.listeners:
             self.listeners.append(obj)
-        loggerDataref.debug(f"{self.path} added listener {obj.name} ({len(self.listeners)})")
+        loggerDataref.debug(f"{self.path} added listener {obj.name} ({len(self.listeners)} listening)")
 
     def rounded_value(self, rounding: int = None):
         return self.round(self._current_value, rounding=rounding)
@@ -493,6 +493,9 @@ class XPlaneBeacon:
                 logger.debug("..monitoring connection..")
         logger.debug("..ended")
 
+    def connection_monitor_running(self) -> bool:
+        return self.should_not_connect is not None and not self.should_not_connect.is_set()
+
     def update_state(self, state: str, value: str):
         if self.tpclient.isConnected():
             logger.debug(f"updating {state} to {value}")
@@ -515,14 +518,14 @@ class XPlaneBeacon:
             self.update_state(STATE_XP_CONNMON, INT_TRUE)
             logger.debug("connect_loop started")
         else:
-            logger.debug("connect_loop already started")
+            logger.debug("connect_loop already running")
 
     def disconnect(self):
         """
         End connect loop and disconnect
         """
+        logger.debug("disconnecting..")
         if self.should_not_connect is not None:
-            logger.debug("disconnecting..")
             self.cleanup()
             self.beacon_data = {}
             self.update_state(STATE_XP_CONNECTED, INT_FALSE)
@@ -552,11 +555,6 @@ class XPlane(XPlaneBeacon):
     Get data from XPlane via network.
     Use a class to implement RAI Pattern for the UDP socket.
     """
-
-    # constants
-    MCAST_GRP = "239.255.1.1"
-    MCAST_PORT = 49707  # (MCAST_PORT was 49000 for XPlane10)
-    BEACON_TIMEOUT = 3.0  # seconds
 
     # Internal key word
     TERMINATE_QUEUE = "__quit__"
@@ -599,7 +597,9 @@ class XPlane(XPlaneBeacon):
         """Quickly ask X-Plane to no longer monitor datarefs we know"""
         for i in range(len(self.datarefs)):
             self._monitor_dataref(next(iter(self.datarefs.values())), freq=0)
-        self.disconnect()
+        # is the connection monitor still running? if yes, stop it
+        if self.connection_monitor_running():
+            self.disconnect()
 
     # ################################
     #
@@ -768,6 +768,9 @@ class XPlane(XPlaneBeacon):
                         logger.warning("too many times out, disconnecting, upd_enqueue terminated")  # ignore
                         self.beacon_data = {}
                         self.update_state(STATE_XP_CONNECTED, INT_FALSE)
+                        if self.fma is not None and self.fma.is_running():
+                            logger.info("stopping FMA..")
+                            self.fma.stop()
                         if self.no_upd_enqueue is not None and not self.no_upd_enqueue.is_set():
                             self.no_upd_enqueue.set()
         self.no_upd_enqueue = None
@@ -905,7 +908,7 @@ class XPlane(XPlaneBeacon):
             else:  # already monitoring, add just one more interested in dref
                 self.datarefs_to_monitor[d.path] = self.datarefs_to_monitor[d.path] + 1
         logger.debug(f"add_datarefs_to_monitor: added {prnt}")
-        logger.debug(f">>>>> monitoring++{len(self.datarefs)}/{self._max_monitored}")
+        logger.debug(f">> monitoring++{len(self.datarefs)}/{self._max_monitored}")
         # logger.info(f"monitoring datarefs {prnt}")
 
     def remove_datarefs_to_monitor(self, datarefs) -> None:
@@ -932,7 +935,7 @@ class XPlane(XPlaneBeacon):
 
         logger.debug(f"removed {prnt}")
         logger.debug(f"currently monitoring {self.datarefs_to_monitor}")
-        logger.debug(f">>>>> monitoring--{len(self.datarefs)}/{self._max_monitored}")
+        logger.debug(f">> monitoring--{len(self.datarefs)}/{self._max_monitored}")
 
     def remove_all_datarefs_to_monitor(self) -> None:
         """Stop currently monitored datarefs and remove them from monitoring"""
@@ -957,6 +960,9 @@ class XPlane(XPlaneBeacon):
         Called when before disconnecting.
         Just before disconnecting, we try to cancel dataref UDP reporting in X-Plane
         """
+        if self.fma is not None and self.fma.is_running():
+            logger.info("stopping FMA..")
+            self.fma.stop()
         self.suppress_all_datarefs_monitoring()
 
     def start(self) -> None:
@@ -980,6 +986,8 @@ class XPlane(XPlaneBeacon):
             logger.info("dataref listener started")
         else:
             logger.info("dataref listener running.")
+        if self.fma is not None:  # restart FMA reader if needed
+            self.check_fma()
         # When restarted after network failure, should clean all datarefs
         # then reload datarefs from current page of each deck
         self.suppress_all_datarefs_monitoring()  # cancel previous subscriptions
@@ -1014,15 +1022,23 @@ class XPlane(XPlaneBeacon):
     #
     def terminate(self) -> None:
         """Cleanly terminates XPlane UDP. Cleanly stop monitoring, shutdown all threads."""
-        if self.fma is not None:
-            logger.info("stopping FMA..")
+        if not self.connected:
+            logger.debug(f"XPlaneUDP currently not running")
+            if self.connection_monitor_running():
+                logger.debug(f"stopping connection monitor..")
+                self.disconnect()  # this stops the connection monitor
+                logger.debug(f"..stopped")
+            return
+        logger.debug(f"XPlaneUDP currently running; terminating..")
+        if self.fma is not None and self.fma.is_running():
+            logger.info("..stopping FMA..")
             self.fma.stop()
-        logger.debug(f"..XPlaneUDP currently {'not ' if self.no_upd_enqueue is None else ''}running. terminating..")
-        self.remove_all_datarefs()
-        logger.info("terminating..disconnecting..")
-        self.disconnect()
         logger.info("..stopping..")
         self.stop()
+        logger.info("..stop monitoring..")
+        self.remove_all_datarefs()
+        logger.info("..disconnecting..")
+        self.disconnect()
         logger.info("..terminated")
 
     # ############################################
