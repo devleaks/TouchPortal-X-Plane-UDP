@@ -71,7 +71,7 @@ class PythonInterface:
 
     def XPluginEnable(self):
         try:
-            self.load()
+            self.load(acpath=CONFIG_DIR)
             return 1
         except:
             if self.trace:
@@ -87,6 +87,29 @@ class PythonInterface:
         return None
 
     def XPluginReceiveMessage(self, inFromWho, inMessage, inParam):
+        """
+        When we receive a message that an aircraft was loaded, if it is the user aircraft,
+        we try to load the aicraft deskconfig.
+        If it does not exist, we default to a screen saver type of screen for the deck.
+        """
+        if inMessage == xp.MSG_PLANE_LOADED and inParam == 0:  # 0 is for the user aircraft, greater than zero will be for AI aircraft.
+            print(self.Info, "PI::XPluginReceiveMessage: user aircraft received")
+            try:
+                ac = xp.getNthAircraftModel(0)  # ('Cessna_172SP.acf', '/Volumns/SSD1/X-Plane/Aircraft/Laminar Research/Cessna 172SP/Cessna_172SP.acf')
+                if len(ac) == 2:
+                    acpath = os.path.split(ac[1])  # ('/Volumns/SSD1/X-Plane/Aircraft/Laminar Research/Cessna 172SP', 'Cessna_172SP.acf')
+                    if self.trace:
+                        print(self.Info, "PI::XPluginReceiveMessage: trying " + acpath[0] + "..")
+                    self.load(acpath=acpath[0])
+                    if self.trace:
+                        print(self.Info, "PI::XPluginReceiveMessage: .. " + acpath[0] + " done.")
+                    return None
+                print(self.Info, "PI::XPluginReceiveMessage: getNthAircraftModel: aircraft not found.")
+            except:
+                if self.trace:
+                    print(self.Info, "PI::XPluginReceiveMessage: exception.")
+                print_exc()
+                self.enabled = False
         return None
 
     def command(self, command: str, begin: bool) -> int:
@@ -115,26 +138,32 @@ class PythonInterface:
             print_exc()
         return 0  # callback must return 0 or 1.
 
-    def load(self):
+    def load(self, acpath: str):
         # Create begin/end commands for long press commands listed in states.json file.
         #
         DEBUG = False
 
         config = None
-        config_dn = CONFIG_DIR
-        config_fn = os.path.join(config_dn, CONFIG_FILE)
+        config_fn = os.path.join(acpath, CONFIG_FILE)
         if not os.path.exists(config_fn):
-            print(self.Info, f"PI::load: Touch Portal X-Plane UDP file '{config_fn}' not found in dir '{config_dn}'")
-            return []
+            print(self.Info, f"PI::load: Touch Portal X-Plane UDP file '{config_fn}' not found in path '{acpath}'")
+            if acpath != CONFIG_DIR:
+                config_fn = os.path.join(CONFIG_DIR, CONFIG_FILE)
+                if not os.path.exists(config_fn):
+                    print(self.Info, f"PI::load: Touch Portal X-Plane UDP file '{config_fn}' not found in default path  '{CONFIG_DIR}'")
+                    return []
 
         with open(config_fn, "r", encoding="utf-8") as config_fp:
             config = json.load(config_fp)
             version = config.get("version")
+            release = config.get("release")
             if version != DYNAMIC_STATES_FILE_VERSION:
                 print(self.Info, f"states file {CONFIG_FILE} invalid version {version} vs. {DYNAMIC_STATES_FILE_VERSION}")
                 return
             if DEBUG:
                 print(self.Info, f"PI::load: loaded file '{config_fn}'")
+                if release is not None:
+                    print(self.Info, f"PI::load: {release}")
 
         commands = config.get(LONG_PRESS_COMMANDS, []) if config is not None else []
         if DEBUG:
