@@ -4,30 +4,162 @@
 
 # Touch Portal X-Plane UDP Plugin
 
-Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that aims at providing minimal hooks
- - to trigger X-Plane commands,
- - to collect X-Plane dataref values to change appearance of Touch Portal buttons.
+Touch Portal X-Plane UDP Plugin is a Touch Portal plugin that allows Touch Portal creators
+to design user interfaces to interact with the X-Plane flight simulator
+(cockpit, flight boards, dashboards, applications, etc.).
 
-To interface to X-Plane, the Touch Portal plugin uses X-Plane built-in UDP «API».
+The plugin adds specific actions to execute commands in the X-Plane simulator.
+
+![Actions](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/actions.png?raw=true)
+
+It also adds convenience states to monitor the connection of the plugin to X-Plane.
+
+![States](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.png?raw=true)
+
+Finally,
+the plugin also creates dynamic states that have values based on some simulator data values.
+Those simulator data values are called datarefs in X-Plane's Universe.
+
+To interface to X-Plane, the Touch Portal X-Plane UDP Plugin uses X-Plane built-in UDP _«API»_.
 The X-Plane UDP API has shortcomings but is mostly sufficent to create appealing cockpit and dashboards.
 
-Before using the plugin, the Touch Portal interface developer will need to collect
-information in X-Plane, such as the commands to execute (usualy expressed as a string like `sim/map/show_current`),
-or simulator variable names also called datarefs, like `sim/cockpit2/radios/actuators/audio_selection_com1`.
 
-After collecting this information, a little configuration file will establish the link
-between those X-Plane datarefs and Touch Portal states used to drive Touch Portal buttons appearance.
-The plugin will then ensure that when the dataref value changes, the Touch Portal state changes accordingly.
+# Actions
 
-For other design operations, Touch Portal creators will use Touch Portal tools to create cockpits and dashboards.
+![Actions](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/actions.png?raw=true)
 
 
-## X-Plane Datarefs and Touch Portal States
+## Execute command
 
-To bridge X-Plane Datarefs and Touch Portal States, the plugin uses a simple,
-single definition file that establish the link between both.
+To execute a command in X-Plane, the Touch Portal creator uses the _Execute X-Plane Command_ action
+and supplies the command to execute like `sim/map/show_toggle`.
 
-A link is declared by a small JSON definition like so:
+![Execute command](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/execute-command-2.png?raw=true)
+
+
+## Execute long press command
+
+To execute a long press command in X-Plane, the Touch Portal creator uses the _Execute Long Press X-Plane Command_ action
+and supplies the command to execute.
+
+![Execute long press command](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/execute-long-command-2.png?raw=true)
+
+A long press command is a command that is executed while the button remain pressed.
+It must not be confused with an auto-repeat command.
+
+A long press command is executed once and last for the duration of the pressing on the button.
+A command with auto-repeat is a command that will be executed several times,
+at given regular interval, for the duration of the pressing on the button.
+
+The execution of Long Press command requires a XPPython3 plugin to execute these commands
+to circumvent a X-Plane UDP API shortcoming.
+
+The XPPython3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
+in XPPython3 plugin script folder.
+
+If the plugin `PI_tpxp_helper.py` is not installed, no long press command will work.
+
+
+## Set Dataref
+
+To change the value of a dataref in the simulator, the creator can use the _Set dataref value_ action.
+The action will need the dataref that need to be set and the value.
+
+Recall that X-Plane UDP protocol will always convert the value to float.
+
+You can only set one value at a time. Not an list or array of values.
+To set a value in an array, simply supply its index in the dataref.
+
+![Set dataref](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/set-dataref-2.png?raw=true)
+
+
+## Leaving Page
+
+The Touch Portal X-Plane UDP Plugin needs to know when a user change page
+to load the states that are used on that page.
+
+It also needs to unload the states that are no longer needed.
+
+Touch Portal has a broadcst event sent when a user change page.
+The event communicates the new page.
+Unfortunately, the event does not tell the page the use is leaving.
+(This may change in a future release.)
+
+To get that information, it is nessessary to use the Leave Page command before loading a new page.
+The Leave Page command will tell the plugin to unload states that are no longer needed.
+
+![Go to page](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/go-to-page.png?raw=true)
+
+This command may be removed in a future release if Touch Portal change page event tell which page the user is leaving.
+
+
+
+# States
+
+In addition to the above commands, the plugin install a few set of states.
+
+![States](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.png?raw=true)
+
+These states can be used by user interface creator to communicate the state of the connection
+of the Touch Portal plugin to X-Plane.
+
+
+## Plugin Processes
+
+(Threads of execution.)
+
+
+### Connection Monitor
+
+The Connection Monitor monitors the connection between the plugin (or Touch Portal)
+and the X-Plane simulator.
+If the simulator is not running, the Monitor will attempt to connect infinitely
+until it can connect to X-Plane.
+
+When connected to X-Plane, it permanently monitor the connetion, attempting to recreate it
+if it fails.
+
+The Connection Monitor states is True if the Monitor is running in the plugin.
+
+
+### Dataref Monitor
+
+The Dataref Monitor is a pair of processes (threads) that
+
+1. Read UDP messages sent by the X-Plane simulator
+2. Update the value of the Touch Portal states when a value monitored in the simulator changes.
+
+The Dataref Monitor states is True if the Monitor is running in the plugin.
+
+The Connection Monitor starts and stops the Dataref Monitor if there is or there is no connection to X-Plane.
+
+If the Dataref Monitor runs, it can safely be assumed that the plugin is connected to the simulator
+and update the states in Touch Portal when necessary.
+
+
+# Dynamic States
+
+To create user interfaces, Touch Portal uses _States_, a variable value that
+can be set, computed, or simply used in Touch Portal to alter the appearance
+of buttons and user interface elements.
+
+In X-Plane, values that change (heading, speed, light is on or off, time of day...)
+are all kept in an accessible structure called a _Dataref_.
+A dataref is accessed by its name, usually a string of character
+organized in domains, very much like a operating system _path_.
+Example of dataref name: `sim/map/show_current`.
+
+The Touch Portal X-Plane UDP Plugin has a mechanism to create and maintain
+_dynamic_ Touch Portal states based on X-Plane simulator dataref.
+
+Wow.
+
+In other words, there is a mechanism to bring the values of X-Plane in Touch Portal.
+
+
+## Dynamic State Definition
+
+To create a dynamic state, the user must create a piece of JSON-formatted defintion:
 
 ```
     {
@@ -38,19 +170,32 @@ A link is declared by a small JSON definition like so:
     }
 ```
 
-The above JSON fragment dynamically creates a Touch Portal state named "Pause".
+The above JSON fragment dynamically creates a Touch Portal dynamic state named "Pause".
 
-The formula establishes the link between the X-Plane dataref value(s) (in this case `sim/time/paused`,
-always a float when fetched through X-Plane UDP API)
+The `formula` establishes the link between the X-Plane dataref value(s) (in this case `sim/time/paused`)
 and the value of the Touch Portal state (in this case, the state named `Pause`).
 
-The formula uses reverse polish notation (RPN).
+The `type` attribute determine the type of the Touch Portal state value.
+In Touch Portal expression string `"1"` is not equal to number value `1`.
+In the plugin, most state values are converted to strings.
 
-Using RPN, the formula `(2 x variable-name) + 3` is written `{$variable-name$} 2 * 3 +`.
+The optional `dataref-rounding` is a rounding that is applied to a dataref value
+before it is used.
+The reason this is provided is that dataref values often fluctuates with little significance.
+So, to limit the frequency of the updates of the related dynamic state,
+a rouding is applied first to ensure significant change has occured.
+
+
+### Formula
+
+The `formula` establishes the link between the X-Plane dataref value(s)
+and the value of the Touch Portal state.
 
 To avoid bringing new confusing syntax, the Touch Portal X-Plane UDP Plugin uses the same convention
 as the Touch Portal server application.
-Touch Portal server application uses RPN in expressions and so does the formula in the plugin.
+Touch Portal server application uses Reverse Polish Notation (RPN) in expressions and so does the formula in the plugin.
+
+Using RPN, the formula `(2 x variable-name) + 3` is written `variable-name 2 * 3 +`.
 
 Touch Portal isolates its internal variables between `{$` and `$}` when writing expressions;
 similarly, formula isolates datarefs in framing `{$` and `$}`.
@@ -60,6 +205,12 @@ The formula may potentially combine several datarefs into a single state value.
 
 (Note: You cannot use or reference Touch Portal states or values in formula, only dataref values.
 So using, for example `${value:tp.plugin.xplaneudp.FCUHEADING}` in a formula is not permitted.)
+
+Finally, please recall that following the X-Plane UDP protocol,
+all dataref values returned by the simulator are `float` numbers.
+
+
+### Example
 
 For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot`
 gives the barometric pressure in inches of mercury,
@@ -81,27 +232,24 @@ the following formula convert the pressure in hecto-Pascal (and round it with 0 
     }
 ```
 
-Please recall that following the X-Plane UDP protocol, all dataref values returned by the simulator
-are `float` numbers.
 
 The above declaration will create a Touch Portal state named `Pressure in hPa` and its value
 will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` multiplied by 33.6839 and rounded.
 
-If present, the optional `dataref-rounding` is a parameter that rounds the raw dataref value as it is received
+The `dataref-rounding` is a parameter that rounds the raw dataref value as it is received
 from X-Plane before it is substitued in the formula.
+
 It prevents rapidly (and often isignificantly) fluctuating datarefs to provoque too frequent state value changes.
 When carefully rounded to a significant value, the dataref update will only provoke a Touch Portal state update when really necessry.
 
-The `type` attribute determine the type of the Touch Portal state value.
-In Touch Portal expression string `"1"` is not equal to number value `1`.
-Most state values are converted to strings.
 
+## Dynamic State File
 
-## Touch Portal Dynamic State Defintions
+All declarations are in the file `states.json`, a JSON-formatted file.
+The format of the file is detailed
+[here](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.md).
 
-[All declarations are in the file](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.md)
-`states.json` in a JSON-formatted file.
-The states in that files are grouped into pages.
+States in that files are grouped into pages.
 When a page is loaded in the Touch Portal client, the states that drive that page
 are loaded and monitored. Other states are temporarily not monitored.
 
@@ -112,64 +260,17 @@ Declarations all need to be created first before the creator of a page with butt
 can access them in Touch Portal application.
 
 
-
-# Touch Portal Actions
-
-## X-Plane Commands
-
-To execute a command in X-Plane, the Touch Portal creator uses the _Execute X-Plane Command_ action
-and supplies the command to execute like `sim/map/show_toggle`.
-
-![Execute command](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/execute-command-2.png?raw=true)
-
-
-## X-Plane Dataref Value Change
-
-To change the value of a dataref in the simulator, the creator can use the _Set dataref value_ action.
-The action will need the dataref that need to be set and the value.
-
-Recall that X-Plane UDP protocol will always convert the value to float.
-
-You can only set one value at a time. Not an list or array of values.
-To set a value in an array, simply supply its index in the dataref.
-
-![Set dataref](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/set-dataref-2.png?raw=true)
-
-
-## X-Plane Long Press Command
-
-To execute a long press command in X-Plane, the Touch Portal creator uses the _Execute Long Press X-Plane Command_ action
-and supplies the command to execute.
-
-A long press command is a command that is executed while the button remain pressed.
-It must not be confused with an auto-repeat command.
-
-A long press command is executed once and last for the duration of the pressing on the button.
-A command with auto-repeat is a command that will be executed several times,
-at given regular interval, for the duration of the pressing on the button.
-
-![Execute long press command](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/execute-long-command-2.png?raw=true)
-
-The execution of Long Press command requires a XPPython3 plugin to execute these commands
-to circumvent a X-Plane UDP API shortcoming.
-
-The XPPython3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
-in XPPython3 plugin script folder.
-
-If the plugin `PI_tpxp_helper.py` is not installed, no long press command will work.
-
-
-
 # Touch Portal Events
 
-Here are a few pieces of Touch Portal code that are executed when values of dynamic stage change.
+Here are a few pieces of Touch Portal plugin code that are executed when values of dynamic stage change.
 
 The process works as follow:
 
 Through the `states.json` file, the plugin creates a Touch Portal dynamic state
 and notifies X-Plane that it is interested in getting the values of the datarefs referenced in the formula.
 
-The plugin monitors the dataref values it receives. When a value has really changed (after rounding),
+The plugin Dataref Monitor monitors the dataref values it receives.
+When a value has really changed (after rounding),
 the plugin _computes_ the RPN formula and update the value of the state with the result of the formula.
 
 The plugin change (sends) the value of the dynamic state in Touch Portal server application.
@@ -201,6 +302,11 @@ The above instruction simply add that information.
 
 ![X-Plane Connection Status](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/go-to-page.png?raw=true)
 
+Please note that to work correctly,
+the instruction relies on a global Touch Portal Event (called _Switch Page_).
+The global Touch Portal Event Switch Page automagically populates the Touch Portal value _Page Path_
+when a user changes page.
+The Page Path value is used by the Leave Page action to report which page a user is leaving.
 
 # Installation
 
