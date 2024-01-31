@@ -2,32 +2,30 @@
 
 The structure of the file is:
 
-```yaml
-  states.json
-    version
-    home-page: page_name
-    sub-folder: touchportal_page_folder_path
-    pages:
-      -
-        name: page_name
-        states:
-          -
-            name: state_name
-            formula: state formula
-            dataref-rouding: rounding applied to all datarefs in formula before comparison
-            type: {int|float|bool} type of state value sent to Touch Portal (bool={TRUE|FALSE} as text strings)
-          -
-            ...
+```json
+{
+    "version": 1,
+    "pages": [
+        {
+            "name": "page_name",
+            "states": [
+                {
+                    "name": "state_name",
+                    "formula": "state formula",
+                    "dataref-rouding": 2,
+                    "type": "int|float|bool"
+                },
+                { other states... }
+            ]
+        },
+        { other pages... }
+    ],
     "long-press-commands": [
         "long/press/command"
     ]
+}```
 
-```
-
-Note that the value of a dataref as received from X-Plane is always a float.
-
-The page name will be search in Touch Portal page folder named after `sub-folder` attribute.
-This parameter is optional if all pages are in the root folder.
+The page name must be the full name, including folder(s) path and `.tml` extension.
 
 The state type forces the value forwarded to Touch Portal to a given type.
 Valid types are:

@@ -144,8 +144,8 @@ can be set, computed, or simply used in Touch Portal to alter the appearance
 of buttons and user interface elements.
 
 In X-Plane, values that change (heading, speed, light is on or off, time of day...)
-are all kept in an accessible structure called a _Dataref_.
-A dataref is accessed by its name, usually a string of character
+are all kept in a set of accessible structures called a _Dataref_.
+A dataref is accessed by its name, usually a string of characters
 organized in domains, very much like a operating system _path_.
 Example of dataref name: `sim/map/show_current`.
 
@@ -155,13 +155,14 @@ _dynamic_ Touch Portal states based on X-Plane simulator dataref.
 Wow.
 
 In other words, there is a mechanism to bring the values of X-Plane in Touch Portal.
+When the value changes in X-Plane, the corresponding Touch Portal state value changes.
 
 
 ## Dynamic State Definition
 
 To create a dynamic state, the user must create a piece of JSON-formatted defintion:
 
-```
+```json
     {
         "name": "Pause",
         "formula": "{$sim/time/paused$}",
@@ -212,11 +213,11 @@ all dataref values returned by the simulator are `float` numbers.
 
 ### Example
 
-For exemple, if the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot`
-gives the barometric pressure in inches of mercury,
-the following formula convert the pressure in hecto-Pascal (and round it with 0 decimal):
+For exemple, the dataref `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot`
+gives the barometric pressure in inches of mercury.
+The following formula convert the pressure in hecto-Pascal (and round it with 0 decimal):
 
-```
+```json
     {
         "name": "Pressure in inHg",
         "formula": "{$sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot$}",
@@ -233,13 +234,13 @@ the following formula convert the pressure in hecto-Pascal (and round it with 0 
 ```
 
 
-The above declaration will create a Touch Portal state named `Pressure in hPa` and its value
+The above declaration will create a Touch Portal dynamic state named `Pressure in hPa` and its value
 will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` multiplied by 33.6839 and rounded.
 
 The `dataref-rounding` is a parameter that rounds the raw dataref value as it is received
 from X-Plane before it is substitued in the formula.
 
-It prevents rapidly (and often isignificantly) fluctuating datarefs to provoque too frequent state value changes.
+It prevents rapidly (and often insignificantly) fluctuating datarefs to provoque too frequent state value changes.
 When carefully rounded to a significant value, the dataref update will only provoke a Touch Portal state update when really necessry.
 
 
