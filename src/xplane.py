@@ -34,7 +34,7 @@ loggerTPState = logging.getLogger("TPState")
 # loggerTPState.setLevel(15)
 
 logger = logging.getLogger("XPlane")
-# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 # logger.setLevel(15)
 
 # ########################################
@@ -570,8 +570,12 @@ class XPlane(XPlaneBeacon):
 
         self.states = {}  # {state_internal_name: TPState}
         self.pages = {}  # {page_name: {dref-path: Dataref}}
+
         self.page_usages = {}  # {page_name: usage_count}
-        self.page_change_lock = threading.RLock()
+        self.page_change_lock = threading.RLock()  # protects above page_usages count
+
+        self.wait_page = threading.Event()
+        self.first_page_change = True
 
         # Dataref value enqueue/dequeue
         # -> Reads UDP packets and enqueue values
@@ -1089,8 +1093,8 @@ class XPlane(XPlaneBeacon):
         then cleanly removes current states (and associated datarefs),
         finally create new states and collect datarefs used per page (in init() procedure)"""
         # first tests if states.json file ok
+        filename = fn if fn is not None else DYNAMIC_STATES_FILE_NAME
         try:
-            filename = fn if fn is not None else DYNAMIC_STATES_FILE_NAME
             if not os.path.exists(filename):
                 logger.debug(f"no file {filename}")
                 return
@@ -1146,7 +1150,6 @@ class XPlane(XPlaneBeacon):
         # logger.debug(f"page usage before load: {page_name}: {self.page_usages[page_name]}")
         if page_name in self.pages.keys():
             with self.page_change_lock:
-                logger.debug(f"page usage: {page_name}: {self.page_usages[page_name]}")
                 if self.page_usages[page_name] == 0:
                     self.add_datarefs_to_monitor(self.pages[page_name])
                 self.page_usages[page_name] = self.page_usages[page_name] + 1
@@ -1155,12 +1158,21 @@ class XPlane(XPlaneBeacon):
         logger.debug(f"page usage: {self.page_usages}")
 
     def leaving_page(self, page_name: str):
-        if page_name in self.pages.keys():
-            self._unload_page(page_name)
-            logger.debug(f"left page {page_name}")
-            self.check_fma()
-        else:
-            logger.warning(f"page {page_name} not found")
+        if page_name not in self.pages.keys():
+            logger.warning(f"leaving: page {page_name} not found in {DYNAMIC_STATES_FILE_NAME} file")
+            return
+        if self.first_page_change:  # nothing to unload
+            logger.debug(f"leaving: first page, no page to unload")
+            return
+        if not self.wait_page.is_set():
+            logger.warning("leaving: wait not set")
+            self.wait_page.clear()  # block entering
+        logger.debug(">>>>> LEAVING")
+        self._unload_page(page_name)
+        logger.debug(f"left page {page_name}")
+        self.check_fma()
+        self.wait_page.set()  # release entering
+        logger.debug(">>>>> DONE LEAVING (SET)")
 
     def entering_page(self, page_name: str):
         """Called on Touch Portal page changes.
@@ -1168,9 +1180,24 @@ class XPlane(XPlaneBeacon):
         Args:
             page_name (str): Name of page being loaded. Must match the named supplied in states.json.
         """
-        if page_name in self.pages:
-            self._load_page(page_name)
-            logger.debug(f"entered page {page_name}")
-            self.check_fma()
+        if page_name not in self.pages:
+            logger.warning(f"entering: page {page_name} not found in {DYNAMIC_STATES_FILE_NAME} file")
+            return
+        if self.first_page_change:
+            logger.debug(f"entering: first page, no wait")
         else:
-            logger.warning(f"page {page_name} not found in {DYNAMIC_STATES_FILE_NAME} file")
+            logger.debug(">>>>> WAIT")
+            if not self.wait_page.is_set():
+                logger.warning("entering: wait not set")
+            self.wait_page.wait()
+        logger.debug(">>>>> ENTERING")
+        self._load_page(page_name)
+        self.first_page_change = False
+        logger.debug(f"entered page {page_name}")
+        self.check_fma()
+        self.wait_page.clear()
+        logger.debug(">>>>> DONE ENTERING (CLEAR)")
+
+    def change_page(self, old_page: str, new_page: str):
+        self.leaving_page(old_page)
+        self.entering_page(new_page)
