@@ -295,6 +295,8 @@ The plugin change (sends) the value of the dynamic state in Touch Portal server 
 
 The Touch Portal server application goes through its routine, executing code linked to the state value change events.
 
+![TP XP Plugin](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/tpxpplugin.png?raw=true)
+
 
 ## Change of button appearance
 

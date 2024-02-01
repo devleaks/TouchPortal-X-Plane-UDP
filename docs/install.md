@@ -119,6 +119,8 @@ that rely on simulated keystrokes.
 You can keep using X-Plane on-screen cockpit elements to control the aircraft.
 The state changes will be reported in the Touch Portal user interfaces.
 
+## Proof of Concept
+
 On a personal side, I developed and use this plugin to interface (or port) this
 [remarkable user interface design](https://flightsim.to/file/40431/touch-portal-pages-for-flybywire-a32nx)
 to X-Plane Toliss A321(neo) aircraft.
@@ -129,7 +131,13 @@ to this (much simpler) plugin (finding commands, datarefs, adjusting events...).
 Here is an example of the piedestal. All buttons and data are working.
 Please notice the TCAS/ATC panel that has been redone to correspond to the A321neo.
 
+![A321 Main](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/a321-main.png?raw=true)
+
+![A321 Main](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/ipad-main.png?raw=true)
+
 ![A321 Piedestal](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/a321-piedestal.png?raw=true)
+
+![A321 Piedestal](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/ipad-piedestal.png?raw=true)
 
 Adjustment to other Toliss Airbus should be straightforward.
 
