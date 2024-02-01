@@ -100,7 +100,13 @@ def onAction(data):
     if not (action_data := data.get("data")) or not (aid := data.get("actionId")):
         return
 
-    if aid == TPPEntry.TP_PLUGIN_ACTIONS["ExecuteCommand"]["id"]:
+    if aid == TPPEntry.TP_PLUGIN_ACTIONS["LeavingPage"]["id"]:
+        page_path = TPClient.getActionDataValue(action_data, TPPEntry.TP_PLUGIN_ACTIONS["LeavingPage"]["data"]["pagePath"]["id"])
+        g_log.debug("leaving page..")
+        XPClient.leaving_page(page_name=page_path)
+        g_log.info(f"Left page {page_path}")
+
+    elif aid == TPPEntry.TP_PLUGIN_ACTIONS["ExecuteCommand"]["id"]:
         action_value = TPClient.getActionDataValue(action_data, TPPEntry.TP_PLUGIN_ACTIONS["ExecuteCommand"]["data"]["command"]["id"])
         if action_value == "":
             g_log.warning("Key press has no command associated")
@@ -117,11 +123,6 @@ def onAction(data):
         dataref_value = TPClient.getActionDataValue(action_data, TPPEntry.TP_PLUGIN_ACTIONS["SetDataref"]["data"]["datarefvalue"]["id"])
         XPClient.write_dataref(dataref=dataref_name, value=dataref_value)
         g_log.debug(f"setDataref {dataref_name}={dataref_value}")
-
-    elif aid == TPPEntry.TP_PLUGIN_ACTIONS["LeavingPage"]["id"]:
-        page_path = TPClient.getActionDataValue(action_data, TPPEntry.TP_PLUGIN_ACTIONS["LeavingPage"]["data"]["pagePath"]["id"])
-        XPClient.leaving_page(page_name=page_path)
-        g_log.info(f"Left page {page_path}")
 
     else:
         g_log.warning("Got unknown action ID: " + aid)
@@ -155,6 +156,20 @@ def onAction(data):
         g_log.debug(f"commandEnd {action_value}")
 
 
+@TPClient.on(TP.TYPES.onBroadcast)
+def onAction(data):
+    g_log.debug(data)
+
+    # {'type': 'broadcast', 'event': 'pageChange', 'pageName': '/(main).tml'}
+    if not (broadcast_event := data.get("event")) or not (page_name := data.get("pageName")):
+        return
+
+    if broadcast_event == "pageChange":
+        g_log.debug("entering page..")
+        XPClient.entering_page(page_name)
+        g_log.info(f"Entered page {page_name}")
+
+
 # Shutdown handler
 @TPClient.on(TP.TYPES.onShutdown)
 def onShutdown(data):
@@ -172,19 +187,6 @@ def onShutdown(data):
 # @TPClient.on(TP.TYPES.onError)
 # def onError(exc):
 #     g_log.error(f"Error in TP Client event handler: {repr(exc)}")
-
-
-@TPClient.on(TP.TYPES.onBroadcast)
-def onAction(data):
-    g_log.debug(data)
-
-    # {'type': 'broadcast', 'event': 'pageChange', 'pageName': '/(main).tml'}
-    if not (broadcast_event := data.get("event")) or not (page_name := data.get("pageName")):
-        return
-
-    if broadcast_event == "pageChange":
-        XPClient.entering_page(page_name)
-        g_log.info(f"Entered page {page_name}")
 
 
 # @TPClient.on(TP.TYPES.allMessage)
