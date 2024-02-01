@@ -827,7 +827,7 @@ class XPlane(XPlaneBeacon):
                 total_duration = total_duration + duration.microseconds / 1000000
                 if total_values % LOOP_ALIVE == 0 and total_updates > 0:
                     logger.debug(
-                        f"average update time {round(total_update_duration / total_updates, 3)} ({total_updates} updates), {round(total_duration / total_values, 5)} ({total_values} values), backlog {bl_avg}/{maxbl}."
+                        f"average update time {round(total_update_duration / total_updates, 3)} ({total_updates} updates), {round(total_duration / total_values, 5)} ({total_values} values), backlog {bl}/{bl_avg}/{maxbl}."
                     )  # ignore
 
             except RuntimeError:
