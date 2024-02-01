@@ -147,7 +147,7 @@ OF THE DESIGNER OF THE ABOVE USER INTERFACES.
 (Which I haven't got yet.)
 
 Other projects include of course designing cockpits for other aircrafts,
-or creating application to inject aircraft defects,
+or creating application to inject aircraft failures,
 very much like Laminar X-Plane controller application.
 
 Fly safely.
