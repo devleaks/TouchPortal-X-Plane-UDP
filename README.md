@@ -56,6 +56,9 @@ to circumvent a X-Plane UDP API shortcoming.
 
 The XPPython3 plugin is provided with this distribution (`PI_tpxp_helper.py`) and should be placed
 in XPPython3 plugin script folder.
+(See
+[installation](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/install.md)
+instructions.)
 
 If the plugin `PI_tpxp_helper.py` is not installed, no long press command will work.
 
@@ -135,6 +138,12 @@ The Connection Monitor starts and stops the Dataref Monitor if there is or there
 
 If the Dataref Monitor runs, it can safely be assumed that the plugin is connected to the simulator
 and update the states in Touch Portal when necessary.
+
+
+### X-Plane Connected
+
+The X-Plane Connected state is True if the connection monitor
+is running and has a connection to X-Plane.
 
 
 # Dynamic States
@@ -233,7 +242,6 @@ The following formula convert the pressure in hecto-Pascal (and round it with 0 
     }
 ```
 
-
 The above declaration will create a Touch Portal dynamic state named `Pressure in hPa` and its value
 will reflect the value of the `sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot` multiplied by 33.6839 and rounded.
 
@@ -246,22 +254,31 @@ When carefully rounded to a significant value, the dataref update will only prov
 
 ## Dynamic State File
 
-All declarations are in the file `states.json`, a JSON-formatted file.
+All definitions of dynamic states are grouped in the file `states.json`, a JSON-formatted file.
+
+The file is located in the Touch Portal plugin folder.
+
 The format of the file is detailed
 [here](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/states.md).
 
 States in that files are grouped into pages.
+
 When a page is loaded in the Touch Portal client, the states that drive that page
 are loaded and monitored. Other states are temporarily not monitored.
 
 If the same state appears in several pages, it must be repeated in each page.
 However, internally, it will only be created once.
 
-Declarations all need to be created first before the creator of a page with buttons
-can access them in Touch Portal application.
+Definitions all need to be created first and loaded into Touch Portal
+before the creator of a page with buttons can access them in Touch Portal application.
+
+Dynamic states appear in Touch Portal under the X-Plane UDP plugin.
+
+![Dynamic states](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/dynamic-states.png?raw=true)
 
 
-# Touch Portal Events
+
+# Touch Portal Events (Examples of Use)
 
 Here are a few pieces of Touch Portal plugin code that are executed when values of dynamic stage change.
 

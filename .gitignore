@@ -154,3 +154,6 @@ cython_debug/
 src/TouchPortal-X-Plane-UDP_v1.0_MacOS.tpp
 docs/.$tpxpplugin.drawio.bkp
 src/states-Toliss A321.json
+src/fma.py
+demo/TouchPortal-X-Plane-UDP.zip
+src/states-A321.json
