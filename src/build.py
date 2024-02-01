@@ -1,6 +1,5 @@
 from TouchPortalAPI import tppbuild
 from sys import platform
-import os
 import TPPEntry
 
 PLUGIN_MAIN = "main.py"
@@ -58,13 +57,7 @@ with open(entry, "r") as f:
 """
 If you have any required file(s) that your plugin needs, put them in this list.
 """
-ADDITIONAL_FILES = [
-    "plugin_config.txt",
-    "tpxpudpplugin.png",
-    TPPEntry.DYNAMIC_STATES_FILE_NAME,
-    os.path.join("demo", "Page-Switch.tpe"),
-    os.path.join("demo", "X-Plane Demo Page.tpz2"),
-]
+ADDITIONAL_FILES = ["plugin_config.txt", "tpxpudpplugin.png", TPPEntry.DYNAMIC_STATES_FILE_NAME, "Page-Switch.tpe", "X-Plane Demo Page.tpz2"]
 
 """
 start.sh file is not needed for Windows machine. as it can execute the exe itself where as
