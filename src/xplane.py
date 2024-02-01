@@ -571,6 +571,7 @@ class XPlane(XPlaneBeacon):
         self.states = {}  # {state_internal_name: TPState}
         self.pages = {}  # {page_name: {dref-path: Dataref}}
         self.page_usages = {}  # {page_name: usage_count}
+        self.page_change_lock = threading.RLock()
 
         # Dataref value enqueue/dequeue
         # -> Reads UDP packets and enqueue values
@@ -1132,10 +1133,11 @@ class XPlane(XPlaneBeacon):
     def _unload_page(self, page_name: str):
         # logger.debug(f"page usage before unload: {page_name}: {self.page_usages[page_name]}")
         if page_name in self.pages.keys():
-            if self.page_usages[page_name] > 0:
-                self.page_usages[page_name] = self.page_usages[page_name] - 1
-                if self.page_usages[page_name] == 0:
-                    self.remove_datarefs_to_monitor(self.pages[page_name])
+            with self.page_change_lock:
+                if self.page_usages[page_name] > 0:
+                    self.page_usages[page_name] = self.page_usages[page_name] - 1
+                    if self.page_usages[page_name] == 0:
+                        self.remove_datarefs_to_monitor(self.pages[page_name])
         else:
             logger.warning(f"page {page_name} not found")
         logger.debug(f"page usage: {self.page_usages}")
@@ -1143,10 +1145,11 @@ class XPlane(XPlaneBeacon):
     def _load_page(self, page_name: str):
         # logger.debug(f"page usage before load: {page_name}: {self.page_usages[page_name]}")
         if page_name in self.pages.keys():
-            logger.debug(f"page usage: {page_name}: {self.page_usages[page_name]}")
-            if self.page_usages[page_name] == 0:
-                self.add_datarefs_to_monitor(self.pages[page_name])
-            self.page_usages[page_name] = self.page_usages[page_name] + 1
+            with self.page_change_lock:
+                logger.debug(f"page usage: {page_name}: {self.page_usages[page_name]}")
+                if self.page_usages[page_name] == 0:
+                    self.add_datarefs_to_monitor(self.pages[page_name])
+                self.page_usages[page_name] = self.page_usages[page_name] + 1
         else:
             logger.warning(f"page {page_name} not found")
         logger.debug(f"page usage: {self.page_usages}")
