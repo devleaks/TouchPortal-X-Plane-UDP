@@ -7,10 +7,10 @@ The packaged release incudes a working set of demonstration
 files that works with X-Plane stock Cessna C172 aircraft.
 
 1. Enable UDP access in X-Plane.
-1. In Touch Portal, import the `TouchPortal-X-Plane-UDP_vX.Y_???.tpp` plugin corresponding to your operating system (`???`).
-1. In Touch Portal, import the `X-Plane Demo Page.tpz2`
+1. In Touch Portal, import the `TouchPortal-X-Plane-UDP_vX.Y_???.tpp` plugin corresponding to your operating system (`???`) and found in the Releases of this repository.
 1. In Touch Portal, create a value named pagepath.
 1. In Touch Portal, import the event `Page-Switch.tpe`.
+1. In Touch Portal, import the `X-Plane Demo Page.tpz2`
 
 
 # Enable UDP access in X-Plane
@@ -111,8 +111,13 @@ You will ear Fire Test alarm in the cockpit, and the FIRE button will light RED.
 # Afterwords
 
 As simple as it may appears, the Touch Portal X-Plane UDP plugin
-opens the door for Touch Poral X-Plane integration.
+opens the door for Touch Portal X-Plane integration.
 
+It is a lot more sophisiticated than existing interfaces
+that rely on simulated keystrokes.
+
+You can keep using X-Plane on-screen cockpit elements to control the aircraft.
+The state changes will be reported in the Touch Portal user interfaces.
 
 On a personal side, I developed and use this plugin to interface (or port) this
 [remarkable user interface design](https://flightsim.to/file/40431/touch-portal-pages-for-flybywire-a32nx)
@@ -121,9 +126,20 @@ to X-Plane Toliss A321(neo) aircraft.
 Work consisted in the replacement of MS Flight Simulator and plugin specific adjustments
 to this (much simpler) plugin (finding commands, datarefs, adjusting events...).
 
+Here is an example of the piedestal. All buttons and data are working.
+Please notice the TCAS/ATC panel that has been redone to correspond to the A321neo.
+
+![A321 Piedestal](https://github.com/devleaks/TouchPortal-X-Plane-UDP/blob/main/docs/a321-piedestal.png?raw=true)
+
 Adjustment to other Toliss Airbus should be straightforward.
 
 DO NO ASK FOR THIS WORK.
 I WILL NOT DISTRIBUTE IT WITHOUT PRIOR AUTHORIZATION
 OF THE DESIGNER OF THE ABOVE USER INTERFACES.
 (Which I haven't got yet.)
+
+Other projects include of course designing cockpits for other aircrafts,
+or creating application to inject aircraft defects,
+very much like Laminar X-Plane controller application.
+
+Fly safely.

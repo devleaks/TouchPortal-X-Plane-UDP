@@ -70,6 +70,7 @@ class KW(Enum):
     FORMULA = "formula"
     HOME_PAGE = "home-page"
     INTEGER = "int"
+    INTERNAL_STATE_NAME = "internal_name"
     LONG_PRESS_COMMAND = "long-press-commands"
     PAGE_NAME = "name"
     PAGES = "pages"
@@ -1068,7 +1069,7 @@ class XPlane(XPlaneBeacon):
             page_states = page.get(KW.STATES.value)
             for state in page_states:
                 name = state.get(KW.STATE_NAME.value)
-                internal_name = TPState.mkintname(name)
+                internal_name = state.get(KW.INTERNAL_STATE_NAME.value, TPState.mkintname(name))
                 if internal_name not in self.states.keys():
                     self.states[internal_name] = TPState(name=name, config=state, sim=self)
                 # else state already created, just add datarefs to page
