@@ -1,5 +1,7 @@
 # Version string of this plugin (in Python style).
-__version__ = "2.8"
+from typing import Dict
+
+__version__ = "2.9"
 
 DYNAMIC_STATES_SETTING = "Dynamic States File"
 DYNAMIC_STATES_FILE_NAME = "states.json"
@@ -23,7 +25,7 @@ def pluginkey(*a):
 
 
 # Basic plugin metadata
-TP_PLUGIN_INFO = {
+TP_PLUGIN_INFO: Dict[str, str | int | Dict] = {
     "sdk": 6,
     "version": int(float(__version__) * 100) + int(DYNAMIC_STATES_FILE_VERSION),  # TP only recognizes integer version numbers
     "name": "Touch Portal X-Plane UDP Plugin",
@@ -43,7 +45,7 @@ TP_PLUGIN_INFO = {
 
 # Setting(s) for this plugin. These could be either for users to
 # set, or to persist data between plugin runs (as read-only settings).
-TP_PLUGIN_SETTINGS = {
+TP_PLUGIN_SETTINGS: Dict[str, Dict] = {
     DYNAMIC_STATES_SETTING: {
         "name": DYNAMIC_STATES_SETTING,
         # "text" is the default type and could be omitted here
@@ -126,7 +128,7 @@ TP_PLUGIN_ACTIONS = {
     },
 }
 
-TP_PLUGIN_CONNECTORS = {}
+TP_PLUGIN_CONNECTORS: Dict[str, Dict] = {}
 
 # Plugin static state(s). These are listed in the entry.tp file,
 # vs. dynamic states which would be created/removed at runtime.
@@ -162,4 +164,4 @@ TP_PLUGIN_STATES = {
 }
 
 # Plugin Event(s).
-TP_PLUGIN_EVENTS = {}
+TP_PLUGIN_EVENTS: Dict[str, Dict] = {}

@@ -1,0 +1,43 @@
+{
+    "version": 4,
+    "home-page": "/X-Plane Demo.tml",
+    "comment": "This is the dynamic state definition file for the X-Plane Demo Touch Portal page",
+    "pages":
+    [
+        {
+            "name": "/X-Plane Demo.tml",
+            "states":
+            [
+                {
+                    "formula": "{$sim/cockpit2/radios/actuators/com1_frequency_hz_833$} 1000 /",
+                    "type": "float",
+                    "name": "COM 1 Frequency",
+                    "dataref-rounding": 0,
+                    "comment": "Dataref is integer value, needs to be divided by 1000"
+                },
+                {
+                    "formula": "{$sim/cockpit2/radios/actuators/audio_selection_com1$}",
+                    "type": "int",
+                    "name": "Audio COM 1",
+                    "dataref-rounding": 0
+                },
+                {
+                    "formula": "{$sim/cockpit2/switches/strobe_lights_on$}",
+                    "type": "int",
+                    "name": "Strobe light",
+                    "dataref-rounding": 0,
+                    "comment": "Demo of set dataref value to 0 or 1 (I know, there is a sim/lights/strobe_lights_toggle action...)"
+                },
+                {
+                    "formula": "{$sim/cockpit/warnings/annunciators/engine_fire$}",
+                    "type": "int",
+                    "name": "Fire Alarm",
+                    "dataref-rounding": 0,
+                    "comment": "Will light when testing long press command below"
+                }                
+            ]
+        }
+    ],
+    "long-press-commands": ["sim/annunciator/test_fire_1_annun"],
+    "comment": "Above attribute used by PI_tpxp_helper plugin to identify all long press commands used on these pages"
+}

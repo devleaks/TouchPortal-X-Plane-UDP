@@ -14,6 +14,7 @@ import json
 import os
 import re
 
+from typing import List
 from datetime import datetime
 from queue import Queue
 from enum import Enum
@@ -101,9 +102,9 @@ class Command:
 
     NOT_A_COMMAND = ["none", "noop", "no-operation", "no-command", "do-nothing"]  # all forced to lower cases
 
-    def __init__(self, path: str, name: str = None):
+    def __init__(self, path: str, name: str | None = None):
         self.path = path  # some/command
-        self.name = name
+        self.name: str | None = name
 
     def __str__(self) -> str:
         return self.name if self.name is not None else (self.path if self.path is not None else "no command")
@@ -121,7 +122,7 @@ class Dataref:
     plugins, or other software in general.
     """
 
-    def __init__(self, path: str, update_frequency: int = 1, rounding: int = None):
+    def __init__(self, path: str, update_frequency: int = 1, rounding: int | None = None):
         self.path = path  # some/path/values[6]
         self.update_frequency = update_frequency  # sent by the simulator that many times per second.
         self.rounding = rounding
@@ -133,13 +134,13 @@ class Dataref:
         self.current_value = None
 
         # stats
-        self._last_updated = None
-        self._last_changed = None
+        self._last_updated: datetime | None = None
+        self._last_changed: datetime | None = None
         self._updated = 0  # number of time value updated
         self._changed = 0  # number of time value changed
 
         # objects interested in dataref value
-        self.listeners = []  # buttons using this dataref, will get notified if changes.
+        self.listeners: List[DatarefListener] = []  # buttons using this dataref, will get notified if changes.
 
     def value(self):
         return self.current_value
@@ -163,7 +164,7 @@ class Dataref:
             self.listeners.append(obj)
         loggerDataref.debug(f"{self.path} added listener {obj.name} ({len(self.listeners)} listening)")
 
-    def rounded_value(self, rounding: int = None):
+    def rounded_value(self, rounding: int | None = None):
         return self.round(self._current_value, rounding=rounding)
 
     def has_changed(self):
@@ -175,7 +176,7 @@ class Dataref:
         #     return True
         return self.current_value != self.previous_value
 
-    def round(self, new_value, rounding: int = None):
+    def round(self, new_value, rounding: int | None = None):
         if type(new_value) not in [int, float]:
             return new_value
         if rounding is not None:
@@ -765,7 +766,7 @@ class XPlane(XPlaneBeacon):
                             (idx, value) = struct.unpack("<if", singledata)
                             self.udp_queue.put((idx, value))
                     else:
-                        logger.warning(f"{binascii.hexlify(data)}")
+                        logger.warning(f"{binascii.hexlify(data)!r}")
                     if total_reads % 10 == 0:
                         logger.debug(
                             f"average socket time between reads {round(total_read_time / total_reads, 3)} ({total_reads} reads; {total_values} values enqueued ({round(total_values/total_reads, 1)} per packet))"
@@ -795,9 +796,9 @@ class XPlane(XPlaneBeacon):
         total_values = 0
         total_duration = 0.0
         total_update_duration = 0.0
-        total_bl = 0
+        total_bl = 0.0
         runs = 0
-        maxbl = 0
+        maxbl = 0.0
 
         while dequeue_run:
             values = self.udp_queue.get()
@@ -1087,7 +1088,7 @@ class XPlane(XPlaneBeacon):
         self.connect()
         logger.info("\n*\n" + "*" * 80 + "\n*\n*  Please start client(s) now, or reflesh client pages if already started\n*\n" + "*" * 80 + "\n*")
 
-    def reinit(self, fn: str = None):
+    def reinit(self, fn: str | None = None):
         """Reloads states.json file. Allow for non standard locations.
         First tests the states.json file to see if it is ok,
         then cleanly removes current states (and associated datarefs),
